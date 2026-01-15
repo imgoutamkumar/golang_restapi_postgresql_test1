@@ -12,18 +12,19 @@ func SetRoutes(r *gin.Engine) {
 	{
 		user.POST("/register", handlers.Register)
 		user.POST("/login", handlers.Login)
-
-		user.GET("/", middleware.AuthMiddleware(), handlers.GetAllUsers)
+		user.GET("/all", middleware.AuthMiddleware(), handlers.GetAllUsers)
+		user.GET("/user/:id", middleware.AuthMiddleware(), handlers.GetUser)
+		user.GET("/user", middleware.AuthMiddleware(), handlers.GetUserByEmail)
 	}
 
 	product := r.Group("/products")
 	{
-		product.GET("/", handlers.GetAllProducts)
+		product.GET("/all", handlers.GetAllProducts)
 
 		productProtected := product.Group("/")
 		productProtected.Use(middleware.AuthMiddleware())
 		{
-			productProtected.GET("/:id", handlers.GetProduct)
+			productProtected.GET("/:id", handlers.GetProductById)
 			productProtected.POST("/", handlers.CreateNewProduct)
 			productProtected.PUT("/:id", handlers.UpdateProduct)
 			productProtected.DELETE("/:id", handlers.DeleteProduct)

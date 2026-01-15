@@ -8,6 +8,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Status string
+
+const (
+	StatusSuccess Status = "Success"
+	StatusFailure Status = "Failure"
+)
+
 func ParsePostgresError(err error) (string, bool) {
 	if err == nil {
 		return "", false
@@ -55,8 +62,16 @@ func ExtractPgCode(err error) string {
 
 func ResponseError(c *gin.Context, code int, message string, details interface{}) {
 	c.JSON(code, gin.H{
-		"status":  "Failure",
+		"status":  StatusFailure,
 		"message": message,
 		"error":   details,
+	})
+}
+
+func ResponseSuccess(c *gin.Context, code int, message string, details interface{}) {
+	c.JSON(code, gin.H{
+		"status":  StatusSuccess,
+		"message": message,
+		"data":    details,
 	})
 }

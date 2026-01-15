@@ -24,6 +24,10 @@ migrate-reset:
 	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" force 0
 	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose up
 
+migration-version:
+	@echo "Checking current migration version..."
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose version
+
 
 # Example usage:
 # make migration name=initial_tables
@@ -31,3 +35,7 @@ migrate-reset:
 # make migrate-down N=1
 # make migrate-force V=0
 # make migrate-reset
+
+
+# Note:
+# Makefiles require TAB for indentation. Spaces will break it silently.
