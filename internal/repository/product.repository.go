@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
+	"gorm.io/gorm"
 )
 
 func CreateProduct(product *models.Product) (*models.Product, error) {
@@ -35,5 +36,13 @@ func UpdateProduct(product *models.Product) error {
 		Model(&models.Product{}).
 		Where("id = ?", product.ID).
 		Updates(product).
+		Error
+}
+
+// for transactional purposes
+func UpdateStock(db *gorm.DB, productID uuid.UUID, qty int) error {
+	return db.Model(&models.Product{}).
+		Where("id = ?", productID).
+		Update("stock", gorm.Expr("stock - ?", qty)).
 		Error
 }

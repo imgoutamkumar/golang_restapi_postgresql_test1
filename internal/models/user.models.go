@@ -19,5 +19,4 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	Orders []Order `gorm:"foreignKey:UserID"`
-	Cart   []Cart  `gorm:"foreignKey:UserID"`
 }

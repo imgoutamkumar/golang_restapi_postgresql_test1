@@ -3,9 +3,13 @@ package handlers
 import (
 	"mime/multipart"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/helper"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/repository"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/utils"
@@ -87,7 +91,7 @@ func Register(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	var req RegisterRequest
+	var req LoginRequest
 
 	if err := c.ShouldBindBodyWithJSON(&req); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, "error in request bpdy", nil)
@@ -103,8 +107,26 @@ func Login(c *gin.Context) {
 		utils.ResponseError(c, http.StatusInternalServerError, "Invalid Credential", nil)
 		return
 	}
+	claims := utils.JWTClaims{
+		UserID: user.ID.String(),
+		Roles:  []string{"user", "admin"}, // dynamic from DB
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "e-commerce-app",
+		},
+	}
+	token, err := utils.CreateToken(claims)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "could not create token", nil)
+		return
+	}
 	userResponse := utils.ToUserResponse(user)
-	utils.ResponseSuccess(c, http.StatusOK, "loggedin successfully", userResponse)
+	// utils.ResponseSuccess(c, http.StatusOK, "loggedin successfully", userResponse)
+	utils.ResponseSuccess(c, http.StatusOK, "loggedin successfully", gin.H{
+		"data":  userResponse,
+		"token": token,
+	})
 }
 
 func GetAllUsers(c *gin.Context) {
@@ -142,4 +164,39 @@ func GetUserByEmail(c *gin.Context) {
 	}
 
 	utils.ResponseSuccess(c, http.StatusOK, "data fetched successfully", user)
+}
+
+func GetFilterAndSearchUsers(c *gin.Context) {
+	// 1. Parse and set defaults for pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if limit < 1 {
+		limit = 10
+	}
+
+	// 2. Create the params object
+	params := helper.UserFilterParams{
+		ProductName: c.Query("productName"),
+		FullName:    c.Query("fullname"),
+		Page:        page,
+		Limit:       limit,
+	}
+	users, total, err := repository.FilterAndSearchUsers(params)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Something went wrong", nil)
+		return
+	}
+	// 3. Return response with metadata
+	utils.ResponseSuccess(c, http.StatusOK, "data fetched successfully", gin.H{
+		"users": users,
+		"meta": gin.H{
+			"page":  page,
+			"limit": limit,
+			"total": total,
+		},
+	})
 }

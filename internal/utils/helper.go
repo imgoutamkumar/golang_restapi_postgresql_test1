@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
+	"gorm.io/gorm"
 )
 
 type UserResponse struct {
@@ -19,4 +22,8 @@ func ToUserResponse(user *models.User) UserResponse {
 		Email:    user.Email,
 		//Avatar:   user.AvatarURL,
 	}
+}
+
+func IsNotFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
 }

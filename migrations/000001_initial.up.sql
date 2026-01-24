@@ -40,13 +40,16 @@ CREATE TABLE IF NOT EXISTS products (
     description TEXT,
     short_description VARCHAR(500),
     base_price NUMERIC(10, 2) NOT NULL,
-    discount_price NUMERIC(10, 2),
+    discount_percent NUMERIC(10, 2) CHECK (
+        discount_percent >= 0
+        AND discount_percent <= 100
+    ),
     currency CHAR(3) DEFAULT 'INR',
     -- product state
-    status product_status NOT NULL DEFAULT 'draft'
-    -- draft | active | inactive | archived
+    status product_status NOT NULL DEFAULT 'draft', -- draft | active | inactive | archived
     is_returnable BOOLEAN DEFAULT true,
     is_cod_available BOOLEAN DEFAULT true,
+    number_of_stock INT NOT NULL DEFAULT 0 CHECK (number_of_stock >= 0),
     -- ownership
     created_by UUID NOT NULL,
     -- timestamps
@@ -59,26 +62,56 @@ CREATE TABLE IF NOT EXISTS products (
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    total_amount NUMERIC(10, 2) NOT NULL,
+    order_number VARCHAR(30) UNIQUE NOT NULL,
     status order_status NOT NULL DEFAULT 'pending',
+    subtotal NUMERIC(10, 2) NOT NULL,
+    discount_amount NUMERIC(10, 2) DEFAULT 0,
+    tax_amount NUMERIC(10, 2) DEFAULT 0,
+    shipping_amount NUMERIC(10, 2) DEFAULT 0,
+    total_amount NUMERIC(10, 2) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
--- Cart table
-CREATE TABLE IF NOT EXISTS cart (
+CREATE TABLE IF NOT EXISTS order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
+    order_id UUID NOT NULL,
     product_id UUID NOT NULL,
-    quantity INT NOT NULL DEFAULT 1,
-    added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    deleted_at TIMESTAMPTZ,
-    CONSTRAINT fk_cart_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_cart_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    product_name VARCHAR(150) NOT NULL,
+    -- snapshot
+    product_price NUMERIC(10, 2) NOT NULL,
+    -- price at purchase time
+    discount_percent NUMERIC(10, 2) DEFAULT 0,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    total_price NUMERIC(10, 2) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id),
+    CONSTRAINT uq_order_product UNIQUE (order_id, product_id)
 );
-
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+-- Cart table
+-- carts (1 cart per user)
+CREATE TABLE carts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    CONSTRAINT fk_carts_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+-- cart items (many products per cart)
+CREATE TABLE cart_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cart_id UUID NOT NULL,
+    product_id UUID NOT NULL,
+    quantity INT NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    CONSTRAINT fk_cart_items_cart FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cart_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    CONSTRAINT uq_cart_product UNIQUE (cart_id, product_id)
+);
 CREATE TABLE IF NOT EXISTS product_images (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_id UUID NOT NULL,
@@ -86,12 +119,13 @@ CREATE TABLE IF NOT EXISTS product_images (
     is_primary BOOLEAN DEFAULT false,
     sort_order INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now(),
-
-    CONSTRAINT fk_product_images_product
-        FOREIGN KEY (product_id)
-        REFERENCES products(id)
-        ON DELETE CASCADE
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    CONSTRAINT fk_product_images_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
+-- Ensure only one primary image per product
+CREATE UNIQUE INDEX IF NOT EXISTS ux_product_primary_image ON product_images (product_id)
+WHERE is_primary = true;
 -- Trigger functions to auto-update updated_at
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = now();
 RETURN NEW;
@@ -104,5 +138,7 @@ CREATE TRIGGER products_updated_at BEFORE
 UPDATE ON products FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER orders_updated_at BEFORE
 UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-CREATE TRIGGER cart_updated_at BEFORE
-UPDATE ON cart FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER carts_updated_at BEFORE
+UPDATE ON carts FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER product_images_updated_at BEFORE
+UPDATE ON product_images FOR EACH ROW EXECUTE FUNCTION set_updated_at();

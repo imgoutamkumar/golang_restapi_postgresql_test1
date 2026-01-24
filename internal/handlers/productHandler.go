@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/helper"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/repository"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/utils"
@@ -38,13 +40,33 @@ func GetProductById(c *gin.Context) {
 }
 
 func CreateNewProduct(c *gin.Context) {
-	var product models.Product
+	var req helper.CreateProductRequest
 	// for now i can make createrId static, later we get from auth middleware
-	// 1. Read JSON body
-	product.CreatedBy = uuid.MustParse("f064c2fc-3523-4e1b-b166-e2cc57064fd8")
-	if err := c.ShouldBindJSON(&product); err != nil {
+	// Read JSON body
+
+	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
+	}
+
+	// Validation check using Validate package
+	if err := config.Validate.Struct(req); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// Custom validation
+	if err := helper.CustomValidate(&req); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	product := models.Product{
+		Name:             req.Name,
+		ShortDescription: req.Description,
+		BasePrice:        req.BasePrice,
+		// for now static, later get from auth middleware
+		CreatedBy: uuid.MustParse("f064c2fc-3523-4e1b-b166-e2cc57064fd8"),
 	}
 	createdProduct, err := repository.CreateProduct(&product)
 	if err != nil {
