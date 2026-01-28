@@ -25,10 +25,8 @@ func GetAllProduct() ([]models.Product, error) {
 
 func GetProductByUUID(id uuid.UUID) (*models.Product, error) {
 	var product models.Product
-	if err := config.DB.Preload("User").First(&product, "id = ?", id).Error; err != nil {
-		return nil, err
-	}
-	return &product, nil
+	err := config.DB.Preload("User").First(&product, "id = ?", id).Error
+	return &product, err
 }
 
 func UpdateProduct(product *models.Product) error {

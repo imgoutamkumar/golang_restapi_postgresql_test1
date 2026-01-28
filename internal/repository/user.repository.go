@@ -62,7 +62,6 @@ func FilterAndSearchUsers(params helper.UserFilterParams) (*[]models.User, int64
 			Joins("JOIN products ON order_items.product_id = products.id").
 			Where("products.product_name ILIKE ?", "%"+params.ProductName+"%").
 			Group("users.id")
-
 	}
 
 	if err := config.DB.Table("(?) as sub", query).Count(&total).Error; err != nil {
@@ -70,7 +69,7 @@ func FilterAndSearchUsers(params helper.UserFilterParams) (*[]models.User, int64
 	}
 	err := query.Limit(params.Limit).
 		Offset(offset).
-		Preload("Orders.OrderItems").
+		Preload("Orders.OrderItems.Product").
 		Find(&users).Error
 
 	return &users, total, err

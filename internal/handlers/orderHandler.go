@@ -11,6 +11,13 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// use goroutines and channels to handle multiple tasks concurrently
+// Scenario: A user places an Order. The Problem: You need to:
+// Save Order to DB.
+// Send an Email Confirmation.
+// Send a WhatsApp Notification.
+// Update Analytics Dashboard.
+
 func Checkout(c *gin.Context) {
 	val, ok := c.Get("userId")
 	if !ok {

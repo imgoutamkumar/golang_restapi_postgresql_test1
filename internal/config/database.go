@@ -11,7 +11,23 @@ import (
 var DB *gorm.DB
 
 func Connect(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	// db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	// retry logic starts here
+	var db *gorm.DB
+	var err error
+
+	for attempts := 1; attempts <= 10; attempts++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err == nil {
+			break
+		}
+
+		log.Printf("DB connection attempt %d failed: %v", attempts, err)
+		time.Sleep(2 * time.Second)
+	}
+
+	// retry logic ends here
 
 	if err != nil {
 		return nil, err

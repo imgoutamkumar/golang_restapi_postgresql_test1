@@ -32,7 +32,8 @@ DROP TABLE IF EXISTS product_images;
 DROP TABLE IF EXISTS products;
 
 DROP TABLE IF EXISTS users;
-
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS roles;
 -- =========================
 -- DROP ENUM TYPES
 -- =========================

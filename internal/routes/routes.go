@@ -8,6 +8,8 @@ import (
 
 func SetRoutes(r *gin.Engine) {
 
+	//user routes
+
 	user := r.Group("/users")
 	{
 		user.POST("/register", handlers.Register)
@@ -16,6 +18,8 @@ func SetRoutes(r *gin.Engine) {
 		user.GET("/user/:id", middleware.AuthMiddleware(), handlers.GetUser)
 		user.GET("/user", middleware.AuthMiddleware(), handlers.GetUserByEmail)
 	}
+
+	// product routes
 
 	product := r.Group("/products")
 	{
@@ -29,5 +33,23 @@ func SetRoutes(r *gin.Engine) {
 			productProtected.PUT("/:id", handlers.UpdateProduct)
 			productProtected.DELETE("/:id", handlers.DeleteProduct)
 		}
+	}
+
+	// cart routes
+
+	cart := r.Group(("/cart"))
+	cartUserProtected := cart.Group("/")
+	cartUserProtected.Use(middleware.AuthMiddleware())
+	{
+		cartUserProtected.GET("/items", handlers.GetAllCartItems)
+		cartUserProtected.POST("/item", handlers.AddOrUpdateCartItem)
+	}
+
+	// Admin routes (admin authorized routes)
+	cartAdminProtected := cart.Group("/")
+	cartAdminProtected.Use(middleware.AuthMiddleware(), middleware.IsAuthorized("Admin"))
+	{
+		cartAdminProtected.GET("/:userId", handlers.GetCart)
+		cartAdminProtected.DELETE("/:userId", handlers.DeleteCart)
 	}
 }

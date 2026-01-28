@@ -15,7 +15,10 @@ func GetCartByUserId(id uuid.UUID) (*models.Cart, error) {
 }
 
 func CreateCart(userId uuid.UUID) error {
-	return nil
+	var cart models.Cart
+	cart.UserID = userId
+	err := config.DB.Create(&cart).Error
+	return err
 }
 
 func AddOrUpdateCartItem(userId uuid.UUID, productId uuid.UUID, qty int) {
@@ -45,4 +48,22 @@ func GetCartItem(cartId uuid.UUID, productId uuid.UUID) (*models.CartItems, erro
 		Error
 
 	return &cartItem, err
+}
+
+func GetCartItems(cartId uuid.UUID) ([]models.CartItems, error) {
+	var items []models.CartItems
+	err := config.DB.
+		Where("cart_id = ?", cartId).
+		Preload("Product").
+		Find(&items).
+		Error
+	return items, err
+}
+
+func RemoveCartItemFrom(cartId uuid.UUID, productId uuid.UUID) error {
+	return config.DB.
+		Unscoped().
+		Where("cart_id = ? AND product_id = ?", cartId, productId).
+		Delete(&models.CartItems{}).
+		Error
 }
