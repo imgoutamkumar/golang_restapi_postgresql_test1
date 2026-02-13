@@ -11,6 +11,7 @@ type ProductImages struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	ProductId uuid.UUID `gorm:"type:uuid;not null;index"`
 	ImageUrl  string    `gorm:"type:text;not null"`
+	PublicId  string    `gorm:"size:255;not null"`
 	IsPrimary bool      `gorm:"type:boolean;default:false"`
 	SortOrder int       `gorm:"type:integer;default:0"`
 	CreatedAt time.Time

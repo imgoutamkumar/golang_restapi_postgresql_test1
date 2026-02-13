@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"mime/multipart"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -33,4 +34,9 @@ func UploadToS3(file *multipart.FileHeader) (string, error) {
 
 	url := "https://my-bucket.s3.amazonaws.com/" + key
 	return url, nil
+}
+
+func DeleteFileFromS3(url string) error {
+	// delete logic
+	return errors.New("something went wrong")
 }

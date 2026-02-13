@@ -15,8 +15,16 @@ func SetRoutes(r *gin.Engine) {
 		user.POST("/register", handlers.Register)
 		user.POST("/login", handlers.Login)
 		user.GET("/all", middleware.AuthMiddleware(), handlers.GetAllUsers)
-		user.GET("/user/:id", middleware.AuthMiddleware(), handlers.GetUser)
+		// user.GET("/:id", middleware.AuthMiddleware(), handlers.GetUser)
 		user.GET("/user", middleware.AuthMiddleware(), handlers.GetUserByEmail)
+		user.POST("/password/forgot", handlers.SendOtpRequest)
+		user.POST("/password/verify", handlers.VerifyOtpRequest)
+		user.POST("/password/reset", handlers.PasswordReset)
+	}
+	productUser := user.Group("/")
+	productUser.Use(middleware.AuthMiddleware())
+	{
+		productUser.GET("/profile", handlers.GetUser)
 	}
 
 	// product routes
@@ -29,9 +37,10 @@ func SetRoutes(r *gin.Engine) {
 		productProtected.Use(middleware.AuthMiddleware())
 		{
 			productProtected.GET("/:id", handlers.GetProductById)
-			productProtected.POST("/", handlers.CreateNewProduct)
+			productProtected.POST("/create", handlers.CreateNewProduct)
 			productProtected.PUT("/:id", handlers.UpdateProduct)
 			productProtected.DELETE("/:id", handlers.DeleteProduct)
+			productProtected.PATCH("/reorder-images", handlers.ProductImagesReorder)
 		}
 	}
 

@@ -26,7 +26,7 @@ func GetUserByUUID(id uuid.UUID) (*models.User, error) {
 
 func GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := config.DB.Select("id", "username", "email", "created_at").First(&user, "email = ?", email).Error; err != nil {
+	if err := config.DB.Select("id", "username", "email", "password", "created_at").First(&user, "email = ?", email).Error; err != nil {
 		return nil, err // GORM returns gorm.ErrRecordNotFound if no match
 	}
 	return &user, nil
@@ -38,11 +38,8 @@ func GetAllUsers() ([]models.User, error) {
 	result := config.DB.
 		Select("id", "username", "email", "created_at").
 		Find(&users)
-	if result.Error != nil {
-		return nil, result.Error
-	}
 
-	return users, nil
+	return users, result.Error
 }
 
 func FilterAndSearchUsers(params helper.UserFilterParams) (*[]models.User, int64, error) {
@@ -73,4 +70,28 @@ func FilterAndSearchUsers(params helper.UserFilterParams) (*[]models.User, int64
 		Find(&users).Error
 
 	return &users, total, err
+}
+
+func CreatePasswordReset(reset_password *models.PasswordReset) error {
+	reset := &models.PasswordReset{
+		UserID:    reset_password.UserID,
+		OTPHash:   reset_password.OTPHash,
+		ExpiresAt: reset_password.ExpiresAt,
+	}
+	err := config.DB.Create(reset).Error
+	return err
+}
+
+func GetPasswordResetByUserID(userID string) (*models.PasswordReset, error) {
+	var reset models.PasswordReset
+	err := config.DB.Where("user_id = ?", userID).First(&reset).Error
+	return &reset, err
+}
+
+func UpdatePasswordReset(reset *models.PasswordReset) error {
+	return config.DB.Save(reset).Error
+}
+
+func DeletePasswordReset(id uint) error {
+	return config.DB.Delete(&models.PasswordReset{}, id).Error
 }

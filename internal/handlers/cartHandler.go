@@ -112,7 +112,7 @@ func AddOrUpdateCartItem(c *gin.Context) {
 		// Update quantity
 		currentQtyInCart = cartItem.Quantity
 		cartItem.Quantity += req.Quantity
-		if product.NumberOfStock < (req.Quantity + currentQtyInCart) {
+		if product.Stock < (req.Quantity + currentQtyInCart) {
 			utils.ResponseError(c, http.StatusBadRequest, "Product out of stock", nil)
 			return
 		}
@@ -122,7 +122,7 @@ func AddOrUpdateCartItem(c *gin.Context) {
 		}
 	} else if errors.Is(err, gorm.ErrRecordNotFound) {
 		// Add new cart item
-		if (currentQtyInCart + req.Quantity) > product.NumberOfStock {
+		if (currentQtyInCart + req.Quantity) > product.Stock {
 			utils.ResponseError(c, http.StatusBadRequest, "Product out of stock", nil)
 			return
 		}

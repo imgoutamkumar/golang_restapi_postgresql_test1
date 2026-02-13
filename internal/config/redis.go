@@ -13,8 +13,9 @@ var ctx = context.Background()
 
 func ConnectRedis() {
 	RDB = redis.NewClient(&redis.Options{
-		// Addr:     "localhost:6379", // Ideally, load this from env variables
-		Addr:     "redis:6379", // redis is the service name in docker-compose
+		Addr: "127.0.0.1:6379", // use IPv4 instead of [::1]
+		// Addr: "localhost:6379", // Ideally, load this from env variables
+		// Addr:     "redis:6379", // redis is the service name in docker-compose
 		Password: "",
 		DB:       0,
 	})

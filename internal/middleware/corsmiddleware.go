@@ -5,7 +5,7 @@ import "github.com/gin-gonic/gin"
 func CORSMiddleware() gin.HandlerFunc {
 
 	allowedOrigins := map[string]bool{
-		"http://localhost:3000":         true, // dev
+		"http://localhost:5173":         true, // dev
 		"https://your-frontend.com":     true, // prod
 		"https://www.your-frontend.com": true,
 	}

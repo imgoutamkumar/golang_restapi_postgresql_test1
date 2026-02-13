@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 type OrderItem struct {
@@ -15,10 +14,10 @@ type OrderItem struct {
 	ProductName string `gorm:"type:varchar(150);not null"`
 
 	// snapshot at purchase time
-	ProductPrice    decimal.Decimal `gorm:"type:numeric(10,2);not null"`
-	DiscountPercent decimal.Decimal `gorm:"type:numeric(10,2);default:0"`
-	Quantity        int             `gorm:"not null;check:quantity > 0"`
-	TotalPrice      decimal.Decimal `gorm:"type:numeric(10,2);not null"`
+	ProductPrice    float64 `gorm:"type:numeric(10,2);not null"`
+	DiscountPercent float64 `gorm:"type:numeric(10,2);default:0"`
+	Quantity        int     `gorm:"not null;check:quantity > 0"`
+	TotalPrice      float64 `gorm:"type:numeric(10,2);not null"`
 
 	CreatedAt time.Time `gorm:"type:timestamptz;not null;default:now()"`
 

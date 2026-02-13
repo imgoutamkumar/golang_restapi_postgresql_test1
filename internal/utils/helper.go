@@ -3,10 +3,10 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"mime/multipart"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/dto"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"gorm.io/gorm"
 )
@@ -31,28 +31,6 @@ func IsNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-// helper/upload.go
-
-func UploadFile(file *multipart.FileHeader) (string, error) {
-	// OPTION A: Save to Local Disk (Simple for dev)
-	// filename := filepath.Base(file.Filename)
-	// dst := "./uploads/" + filename
-	// if err := c.SaveUploadedFile(file, dst); err != nil { return "", err }
-	// return "/uploads/" + filename, nil
-
-	// OPTION B: Upload to AWS S3 (Production)
-	// This is where you would use the AWS SDK to put the file into a bucket.
-	// For this example, I will simulate returning a fake S3 URL.
-
-	// Simulate processing time
-	// time.Sleep(100 * time.Millisecond)
-
-	// Generate a unique filename to prevent overwrites
-	uniqueName := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
-
-	return "https://my-bucket.s3.amazonaws.com/" + uniqueName, nil
-}
-
 func DeleteFile(fileURL string) error {
 	// OPTION A: Delete from Local Disk
 	// path := "." + fileURL // assuming fileURL is like "/uploads/filename.jpg"
@@ -64,4 +42,40 @@ func DeleteFile(fileURL string) error {
 	// Simulate processing time
 	// time.Sleep(50 * time.Millisecond)
 	return nil
+}
+
+func GenerateOtp() string {
+	// Generate a random 6-digit OTP
+	otp := fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+	return otp
+}
+
+func MapProductToResponse(p *models.Product) dto.ProductResponse {
+	finalPrice := p.BasePrice - (p.BasePrice * p.DiscountPercent / 100)
+
+	images := []dto.ProductImageResponse{}
+	for _, img := range p.ProductImages {
+		images = append(images, dto.ProductImageResponse{
+			URL:       img.ImageUrl,
+			IsPrimary: img.IsPrimary,
+			PublicId:  img.PublicId,
+		})
+	}
+
+	return dto.ProductResponse{
+		ID:              p.ID.String(),
+		Name:            p.Name,
+		ShortDesc:       p.ShortDescription,
+		BasePrice:       p.BasePrice,
+		DiscountPercent: p.DiscountPercent,
+		FinalPrice:      finalPrice,
+		Currency:        p.Currency,
+		Stock:           p.NumberOfStock,
+		Brand: dto.BrandResponse{
+			ID:   p.Brand.ID.String(),
+			Name: p.Brand.Name,
+		},
+		Images:    images,
+		CreatedAt: p.CreatedAt,
+	}
 }

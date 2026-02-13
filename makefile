@@ -28,6 +28,17 @@ migration-version:
 	@echo "Checking current migration version..."
 	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose version
 
+migrate-drop-all:
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down -all
+
+# make migrate-drop-all
+# make migrate-up
+
+
+migrate-reset-all:
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down -all
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose up
+
 
 # Example usage:
 # make migration name=initial_tables

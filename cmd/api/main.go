@@ -29,8 +29,10 @@ func main() {
 	}
 	_ = db // just to show it’s connected
 
-	// Connect to Redis
+	config.LoadDefaultRoles()
+	// Connect to Redis, clodinary
 	config.ConnectRedis()
+	config.InitializeCloudinary()
 
 	var router *gin.Engine = gin.Default()
 	//router := gin.Default()
