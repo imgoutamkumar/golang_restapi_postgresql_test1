@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
@@ -15,10 +16,10 @@ func main() {
 	// Entry point for the API server
 
 	// Load environment variables
-	env := config.LoadEnv()
+	// env := config.LoadEnv()
 
 	// Load DB URL from environment
-	dsn := env.DatabaseUrl
+	dsn := os.Getenv("DB_URL")
 	if dsn == "" {
 		log.Fatal("DB_URL is not set")
 	}
@@ -52,7 +53,7 @@ func main() {
 	routes.SetRoutes(router)
 
 	// Start server
-	port := env.Port
+	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // default
 	}
