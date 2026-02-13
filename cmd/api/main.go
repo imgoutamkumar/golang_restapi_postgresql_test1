@@ -8,6 +8,7 @@ import (
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/middleware"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/routes"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/utils"
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 		log.Fatal("DB connection failed:", err)
 	}
 	_ = db // just to show it’s connected
-
+	utils.RunMigrations()
 	config.LoadDefaultRoles()
 	// Connect to Redis, clodinary
 	config.ConnectRedis()
