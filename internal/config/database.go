@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -25,7 +26,7 @@ func Connect(dsn string) (*gorm.DB, error) {
 		if err == nil {
 			break
 		}
-
+		fmt.Println("dsn", dsn)
 		log.Printf("DB connection attempt %d failed: %v", attempts, err)
 		time.Sleep(2 * time.Second)
 	}
