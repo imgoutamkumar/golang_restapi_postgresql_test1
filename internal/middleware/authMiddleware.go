@@ -42,7 +42,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// store values for handlers
 		c.Set("claims", claims)
 		c.Set("userId", claims.UserID)
-		c.Set("roles", claims.Roles)
+		c.Set("role", claims.Role)
 		c.Next()
 	}
 }
@@ -57,11 +57,15 @@ func IsAuthorized(requiredRole string) gin.HandlerFunc {
 			return
 		}
 		claims := claimsAny.(*utils.JWTClaims)
-		for _, role := range claims.Roles {
-			if requiredRole == role {
-				c.Next()
-				return
-			}
+		// for _, role := range claims.Roles {
+		// 	if requiredRole == role {
+		// 		c.Next()
+		// 		return
+		// 	}
+		// }
+		if requiredRole == claims.Role {
+			c.Next()
+			return
 		}
 
 		utils.ResponseError(c, http.StatusForbidden, "access denied", nil)

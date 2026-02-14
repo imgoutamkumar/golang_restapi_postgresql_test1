@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -129,7 +130,7 @@ func Login(c *gin.Context) {
 
 	claims := utils.JWTClaims{
 		UserID: user.ID.String(),
-		Roles:  []string{"user", "admin"}, // dynamic from DB
+		Role:   user.Role.Name, // dynamic from DB
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -141,14 +142,8 @@ func Login(c *gin.Context) {
 		utils.ResponseError(c, http.StatusInternalServerError, "could not create token", nil)
 		return
 	}
-
+	log.Println("user : ", user)
 	userResponse := utils.ToUserResponse(user)
-	// utils.ResponseSuccess(c, http.StatusOK, "loggedin successfully", userResponse)
-
-	// utils.ResponseSuccess(c, http.StatusOK, "loggedin successfully", gin.H{
-	// 	"data":  userResponse,
-	// 	"token": token,
-	// })
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "Success",
 		"message": "logged in successfully",
