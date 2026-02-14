@@ -16,12 +16,12 @@ func main() {
 	// Entry point for the API server
 
 	// Load environment variables
-	// env := config.LoadEnv()
+	env := config.LoadEnv()
 
 	// Load DB URL from environment
-	dsn := os.Getenv("DB_URL")
+	dsn := env.DatabaseUrl
 	if dsn == "" {
-		log.Fatal("DB_URL is not set")
+		log.Fatal("DB_URL is not set", dsn)
 	}
 
 	// Connect to the database
