@@ -7,7 +7,9 @@ import (
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 )
 
-func Login() {}
+func Login() {
+
+}
 
 func Register(user *models.User) (*models.User, error) {
 	if err := config.DB.Create(user).Error; err != nil {
@@ -26,7 +28,7 @@ func GetUserByUUID(id uuid.UUID) (*models.User, error) {
 
 func GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := config.DB.Select("id", "username", "email", "password", "created_at").First(&user, "email = ?", email).Error; err != nil {
+	if err := config.DB.Preload("Role").Select("id", "username", "email", "password", "created_at").First(&user, "email = ?", email).Error; err != nil {
 		return nil, err // GORM returns gorm.ErrRecordNotFound if no match
 	}
 	return &user, nil

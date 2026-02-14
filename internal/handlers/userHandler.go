@@ -141,6 +141,7 @@ func Login(c *gin.Context) {
 		utils.ResponseError(c, http.StatusInternalServerError, "could not create token", nil)
 		return
 	}
+
 	userResponse := utils.ToUserResponse(user)
 	// utils.ResponseSuccess(c, http.StatusOK, "loggedin successfully", userResponse)
 

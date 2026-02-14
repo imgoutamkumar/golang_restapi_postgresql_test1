@@ -15,6 +15,7 @@ type UserResponse struct {
 	ID       uuid.UUID `json:"id"`
 	Username string    `json:"username"`
 	Email    string    `json:"email"`
+	Role     string    `json:"role"`
 	Avatar   string    `json:"avatar,omitempty"` // optional
 }
 
@@ -23,6 +24,7 @@ func ToUserResponse(user *models.User) UserResponse {
 		ID:       user.ID,
 		Username: user.Username,
 		Email:    user.Email,
+		Role:     user.Role.Name,
 		//Avatar:   user.AvatarURL,
 	}
 }
