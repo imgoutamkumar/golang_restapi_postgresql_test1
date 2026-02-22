@@ -14,8 +14,8 @@ type User struct {
 	Gender    string    `gorm:"size:10;not null"`
 	Email     string    `gorm:"size:100;unique;not null"`
 	Password  string    `gorm:"size:255;not null" json:"-"`
-	RoleId    uuid.UUID `gorm:"type:uuid;"`
-	Role      Role      `gorm:"embedded;embeddedPrefix:role_"`
+	RoleID    uuid.UUID `gorm:"type:uuid;not null"`
+	Role      Role      `gorm:"foreignKey:RoleID"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`

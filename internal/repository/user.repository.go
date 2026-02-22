@@ -28,23 +28,16 @@ func GetUserByUUID(id uuid.UUID) (*models.User, error) {
 
 func GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := config.DB.
-		Table("users").
-		Select(`
-			users.id,
-			users.username,
-			users.email,
-			users.password,
-			users.role_id,
-			users.created_at,
-			roles.id as role_id,
-			roles.name as role_name
-		`).
-		Joins("LEFT JOIN roles ON roles.id = users.role_id").
-		Where("users.email = ?", email).
-		Scan(&user).Error; err != nil {
-		return nil, err // GORM returns gorm.ErrRecordNotFound if no match
+
+	err := config.DB.
+		Preload("Role").
+		Where("email = ?", email).
+		First(&user).Error
+
+	if err != nil {
+		return nil, err
 	}
+
 	return &user, nil
 }
 

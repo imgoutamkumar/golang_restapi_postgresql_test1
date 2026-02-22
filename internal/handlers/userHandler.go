@@ -86,7 +86,7 @@ func Register(c *gin.Context) {
 		Email:    req.Email,
 		Gender:   req.Gender,
 		Password: hashedPassword, // hash password
-		RoleId:   defaultRoleId,
+		RoleID:   defaultRoleId,
 	}
 	userData, err := repository.Register(&user)
 
@@ -115,6 +115,7 @@ func Login(c *gin.Context) {
 		utils.ResponseError(c, http.StatusBadRequest, "User not found", nil)
 		return
 	}
+	fmt.Println("User found:", user)
 
 	isPasswordValid, err := utils.CheckPassword(user.Password, req.Password)
 	if err != nil {
