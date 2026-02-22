@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"mime/multipart"
+	"time"
 
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
@@ -15,7 +16,7 @@ type UploadFileToCloudinaryResponse struct {
 	Public_Id string
 }
 
-func UploadFileToCloudinary(fileHeader *multipart.FileHeader) (*UploadFileToCloudinaryResponse, error) {
+func UploadFileToCloudinary(fileHeader *multipart.FileHeader, folder string) (*UploadFileToCloudinaryResponse, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		return nil, err
@@ -24,7 +25,10 @@ func UploadFileToCloudinary(fileHeader *multipart.FileHeader) (*UploadFileToClou
 	uploadResult, err := config.CLD.Upload.Upload(
 		context.Background(),
 		file,
-		uploader.UploadParams{})
+		uploader.UploadParams{
+			Folder:   folder,
+			PublicID: fmt.Sprintf("%d_%s", time.Now().Unix(), fileHeader.Filename),
+		})
 	if err != nil {
 		log.Printf("Failed to upload file to Cloudinary: %v", err)
 		return nil, err

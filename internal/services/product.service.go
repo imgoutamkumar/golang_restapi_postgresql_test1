@@ -82,7 +82,7 @@ func CreateProductService(c *gin.Context, req *dto.CreateProductRequest, userId 
 				AttributeValueID: attrId,
 			})
 		}
-
+		folder := fmt.Sprintf("ecommerce/products/%s", product.ID.String())
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 		var uploadErr error
@@ -93,7 +93,7 @@ func CreateProductService(c *gin.Context, req *dto.CreateProductRequest, userId 
 			go func(i int, fileHeader *multipart.FileHeader) {
 				defer wg.Done()
 
-				uploadFileData, err := utils.UploadFileToCloudinary(fileHeader)
+				uploadFileData, err := utils.UploadFileToCloudinary(fileHeader, folder)
 				if err != nil {
 					uploadErr = err
 					return
