@@ -73,3 +73,45 @@ color (red, black)
 sku
 stock
 price
+
+
+// Database = 100% empty.
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+date 17-02-26  handler for create new product use this
+
+product := models.Product{
+	Name:       req.Name,
+	BrandID:    req.BrandID,
+	CategoryID: req.CategoryID,
+	Status:     models.ProductActive,
+}
+
+variantAttrMap := make(map[uuid.UUID][]uuid.UUID)
+
+for _, v := range req.Variants {
+
+	variant := models.ProductVariant{
+		ID:    uuid.New(),
+		Sku:   v.Sku,
+		Price: v.Price,
+		Stock: v.Stock,
+	}
+
+	// images
+	for _, img := range v.Images {
+		variant.Images = append(variant.Images, models.ProductImage{
+			ImageURL:  img.ImageURL,
+			PublicID:  img.PublicID,
+			IsPrimary: img.IsPrimary,
+		})
+	}
+
+	product.Variants = append(product.Variants, variant)
+
+	// map variant -> attribute ids
+	variantAttrMap[variant.ID] = v.AttributeValueIDs
+}
+
+created, err := repo.CreateProduct(&product, variantAttrMap)

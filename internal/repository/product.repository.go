@@ -1,9 +1,9 @@
 package repository
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
@@ -13,37 +13,92 @@ import (
 	"gorm.io/gorm"
 )
 
-type productRow struct {
-	ID               string
-	Name             string
-	ShortDescription string
-	BasePrice        float64
-	DiscountPercent  float64
-	FinalPrice       float64
-	Currency         string
-	Stock            int
-	CreatedAt        time.Time
-	CreatedBy        string
-	BrandID          string
-	BrandName        string
-}
-
-func CreateProduct(product *models.Product) (*models.Product, error) {
-
+func CreateProduct(product *models.Product, variantAttrMap map[uuid.UUID][]uuid.UUID) error {
 	db := config.DB
-	if err := db.Create(product).Error; err != nil {
-		return nil, err
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+
+		// create product + variants + images
+		if err := tx.
+			Omit("Variants.AttributeValues.*").
+			Create(product).Error; err != nil {
+			return fmt.Errorf("failed to create product: %w", err)
+		}
+
+		// insert pivot table (variant_attributes)
+		type Pivot struct {
+			VariantID        uuid.UUID `gorm:"type:uuid"`
+			AttributeValueID uuid.UUID `gorm:"type:uuid"`
+		}
+
+		var pivots []Pivot
+
+		for _, variant := range product.Variants {
+
+			attrIDs := variantAttrMap[variant.ID]
+			if len(attrIDs) == 0 {
+				continue
+			}
+
+			for _, attrID := range attrIDs {
+				pivots = append(pivots, Pivot{
+					VariantID:        variant.ID,
+					AttributeValueID: attrID,
+				})
+			}
+		}
+
+		if len(pivots) > 0 {
+			if err := tx.Table("variant_attributes").Create(&pivots).Error; err != nil {
+				return fmt.Errorf("failed to insert variant attributes: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
-	// reload with relations needed for response
+
+	// reload full product
+
+	/* var created models.Product
+
 	if err := db.
 		Preload("Brand").
-		Preload("ProductImages").
-		First(product, "id = ?", product.ID).Error; err != nil {
-		return nil, err
+		Preload("Category").
+		Preload("Variants").
+		Preload("Variants.Images").
+		Preload("Variants.AttributeValues").
+		First(&created, "id = ?", product.ID).Error; err != nil {
+		return nil, fmt.Errorf("failed to reload product: %w", err)
 	}
 
-	return product, nil
+	return &created, nil
+	*/
+	return err
+}
 
+func CreateNewProduct(product *models.Product) error {
+	db := config.DB
+
+	err := db.Transaction(func(tx *gorm.DB) error {
+
+		// create product + variants + images
+		if err := tx.
+			Omit("Variants.AttributeValues.*").
+			Create(product).Error; err != nil {
+			return fmt.Errorf("failed to create product: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+	return err
 }
 
 func GetAllProducts(
@@ -59,30 +114,18 @@ func GetAllProducts(
 	// var products []dto.ProductResponse
 	var total int64
 
-	db := config.DB.Table("products").
-		Select(`
-			products.id,
-			products.name,
-			products.short_description,
-			products.base_price as base_price,
-			products.discount_percent,
-			(products.base_price - (products.base_price * products.discount_percent / 100)) as final_price,
-			products.currency,
-			products.number_of_stock as stock,
-			products.created_at,
-			brands.id as brand_id,
-		brands.name as brand_name
-		`).
-		Joins("LEFT JOIN brands ON brands.id = products.brand_id")
+	// ---------------- BASE QUERY ----------------
+	query := config.DB.Model(&models.Product{}).
+		Joins("LEFT JOIN brands ON brands.id = products.brand_id").
+		Where("products.deleted_at IS NULL")
 
-		// ---------------- SEARCH ----------------
+	// ---------------- SEARCH ----------------
 	if search != "" {
 		search = strings.ToLower(strings.TrimSpace(search))
-
-		db = db.Where(`
-		LOWER(products.name) ILIKE ? OR 
-		LOWER(products.short_description) ILIKE ?
-	`, "%"+search+"%", "%"+search+"%")
+		query = query.Where(`
+			LOWER(products.name) ILIKE ? OR 
+			LOWER(products.description) ILIKE ?
+		`, "%"+search+"%", "%"+search+"%")
 	}
 
 	//if fronend send brand_id then no need to add join here
@@ -94,22 +137,13 @@ func GetAllProducts(
 			brands = append(brands, strings.TrimSpace(b))
 		}
 
-		db = db.Where("LOWER(brands.name) IN ?", brands)
+		query = query.Where("LOWER(brands.name) IN ?", brands)
 	}
 
-	if minPrice != "" && maxPrice != "" {
-		min, _ := strconv.Atoi(minPrice)
-		max, _ := strconv.Atoi(maxPrice)
-		db = db.Where("base_price BETWEEN ? AND ?", min, max)
-	}
+	// ---------------- COUNT ----------------
+	query.Count(&total)
 
-	if discount != "" {
-		d, _ := strconv.Atoi(discount)
-		db = db.Where("discount_percent >= ?", d)
-	}
-
-	db.Count(&total)
-
+	// ---------------- PAGINATION ----------------
 	p, _ := strconv.Atoi(page)
 	l, _ := strconv.Atoi(limit)
 
@@ -117,155 +151,162 @@ func GetAllProducts(
 		p = 1
 	}
 	if l <= 0 {
-		l = 12
+		l = 10
 	}
 
 	offset := (p - 1) * l
 
-	var rows []productRow
-	// ---------- fetch images in ONE query ----------
-	err := db.
+	// ---------------- FETCH PRODUCTS ----------------
+	var products []models.Product
+	err := query.
+		Preload("Brand").
+		Order("products.created_at DESC").
 		Limit(l).
 		Offset(offset).
-		Order("created_at DESC").
-		Scan(&rows).Error
+		Find(&products).Error
 
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// ------------------ GET ALL PRODUCT IDS ------------------
-	var productIDs []string
-	for _, r := range rows {
-		productIDs = append(productIDs, r.ID)
+	if len(products) == 0 {
+		return []dto.ProductResponse{}, total, nil
 	}
 
-	// ------------------ FETCH ALL IMAGES IN ONE QUERY ------------------
-	var imgRows []struct {
-		Id        string
-		ProductID string
-		ImageURL  string
-		IsPrimary bool
-		PublicID  string
+	// ---------------- COLLECT PRODUCT IDS ----------------
+	productIDs := make([]uuid.UUID, 0)
+	for _, p := range products {
+		productIDs = append(productIDs, p.ID)
 	}
 
-	config.DB.Table("product_images").
-		Select("id, product_id, image_url, is_primary, public_id").
-		Where("product_id IN ?", productIDs).
-		Order("sort_order ASC").
-		Scan(&imgRows)
-
-		// ------------------ BUILD IMAGE MAP ------------------
-	imageProductMap := make(map[string][]dto.ProductImageResponse)
-
-	for _, img := range imgRows {
-		imageProductMap[img.ProductID] = append(
-			imageProductMap[img.ProductID],
-			dto.ProductImageResponse{
-				Id:        img.Id,
-				URL:       img.ImageURL,
-				IsPrimary: img.IsPrimary,
-				PublicId:  img.PublicID,
-			},
-		)
+	// ---------------- FETCH VARIANTS ----------------
+	var variants []models.ProductVariant
+	err = config.DB.
+		Where("product_id IN ? AND is_default = true", productIDs).
+		Preload("Images", "is_primary = ?", true).
+		Find(&variants).Error
+	if err != nil {
+		return nil, 0, err
 	}
 
-	// ---------- build DTO ----------
-	responses := make([]dto.ProductResponse, 0, len(rows))
+	// ---------------- BUILD RESPONSE ----------------
+	var responses []dto.ProductResponse
 
-	for _, r := range rows {
-		responses = append(responses, dto.ProductResponse{
-			ID:              r.ID,
-			Name:            r.Name,
-			ShortDesc:       r.ShortDescription,
-			BasePrice:       r.BasePrice,
-			DiscountPercent: r.DiscountPercent,
-			FinalPrice:      r.FinalPrice,
-			Currency:        r.Currency,
-			Stock:           r.Stock,
-			CreatedAt:       r.CreatedAt,
+	for _, p := range products {
+
+		productResp := dto.ProductResponse{
+			ID:        p.ID.String(),
+			Name:      p.Name,
+			ShortDesc: p.ShortDescription,
+			Currency:  p.Currency,
+			CreatedAt: p.CreatedAt,
 			Brand: dto.BrandResponse{
-				ID:   r.BrandID,
-				Name: r.BrandName,
+				ID:   p.Brand.ID.String(),
+				Name: p.Brand.Name,
 			},
-			Images: imageProductMap[r.ID], // attach images
-		})
+		}
+
+		var variantResponses []dto.ProductVariantResponse
+
+		for _, v := range variants {
+
+			var variantImages []dto.ProductImageResponse
+			for _, img := range v.Images {
+				variantImages = append(variantImages, dto.ProductImageResponse{
+					Id:        img.ID.String(),
+					URL:       img.ImageURL,
+					IsPrimary: img.IsPrimary,
+					PublicId:  img.PublicID,
+				})
+			}
+			variantResponses = append(variantResponses,
+				dto.ProductVariantResponse{
+					Sku:             v.Sku,
+					Price:           v.Price,
+					DiscountPercent: v.DiscountPercent,
+					FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
+					Stock:           v.Stock,
+					Images:          variantImages,
+				})
+		}
+
+		productResp.Variants = variantResponses
+		responses = append(responses, productResp)
 	}
 
 	return responses, total, nil
 }
 
-func GetProductByUUID(id uuid.UUID) (*productRow, error) {
-	var row productRow
+func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
+	var product models.Product
 	db := config.DB
-	err := db.Table("products").
-		Select(`
-			products.id, 
-			products.name,
-			products.short_description,
-			products.base_price as base_price,
-			products.discount_percent,
-			(products.base_price - (products.base_price * products.discount_percent / 100)) as final_price,
-			products.currency,
-			products.number_of_stock as stock,
-			products.created_by,
-			products.created_at,
-			brands.id as brand_id,
-		brands.name as brand_name
-		`).
-		Joins("LEFT JOIN brands ON brands.id = products.brand_id").
-		Where("products.id = ?", id).Scan(&row).Error
 
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// 1️⃣ Fetch Product + Brand (ONLY)
+	if err := db.
+		Preload("Brand").
+		First(&product, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	var variants []models.ProductVariant
 
-	// var imgRows []struct {
-	// 	Id        string
-	// 	ProductID string
-	// 	ImageURL  string
-	// 	IsPrimary bool
-	// 	PublicID  string
-	// }
+	if err := db.
+		Preload("Images").
+		Preload("VariantAttributes.AttributeValue.AttributeType").
+		Where("product_id = ?", id).
+		Find(&variants).Error; err != nil {
+		return nil, err
+	}
 
-	// db.Table("product_images").
-	// 	Select("id, product_id, image_url, is_primary, public_id").
-	// 	Where("product_id = ?", id).
-	// 	Order("sort_order ASC").
-	// 	Scan(&imgRows)
+	response := dto.ProductResponse{
+		ID:        product.ID.String(),
+		Name:      product.Name,
+		ShortDesc: product.ShortDescription,
+		BasePrice: product.BasePrice,
+		Brand: dto.BrandResponse{
+			ID:   product.Brand.ID.String(),
+			Name: product.Brand.Name,
+		},
+	}
 
-	// imageProductMap := []dto.ProductImageResponse{}
+	for _, v := range variants {
+		var variantImages []dto.ProductImageResponse
+		for _, img := range v.Images {
+			variantImages = append(variantImages, dto.ProductImageResponse{
+				Id:        img.ID.String(),
+				URL:       img.ImageURL,
+				IsPrimary: img.IsPrimary,
+				PublicId:  img.PublicID,
+			})
+		}
 
-	// for _, img := range imgRows {
-	// 	imageProductMap = append(
-	// 		imageProductMap,
-	// 		dto.ProductImageResponse{
-	// 			Id:        img.Id,
-	// 			URL:       img.ImageURL,
-	// 			IsPrimary: img.IsPrimary,
-	// 			PublicId:  img.PublicID,
-	// 		},
-	// 	)
-	// }
+		// build attribute groups
+		attrGroupMap := make(map[string][]dto.AttributeValueResponse)
+		for _, va := range v.VariantAttributes {
+			attrGroupName := va.AttributeValue.AttributeType.Name
+			attrGroupMap[attrGroupName] = append(attrGroupMap[attrGroupName], dto.AttributeValueResponse{
+				ID:    va.AttributeValue.ID.String(),
+				Value: va.AttributeValue.Value,
+			})
+		}
+		var attributeGroups []dto.AttributeGroup
+		for name, values := range attrGroupMap {
+			attributeGroups = append(attributeGroups, dto.AttributeGroup{
+				Name:   name,
+				Values: values,
+			})
+		}
 
-	// response := dto.ProductResponse{
-	// 	ID:              row.ID,
-	// 	Name:            row.Name,
-	// 	ShortDesc:       row.ShortDescription,
-	// 	BasePrice:       row.BasePrice,
-	// 	DiscountPercent: row.DiscountPercent,
-	// 	FinalPrice:      row.FinalPrice,
-	// 	Currency:        row.Currency,
-	// 	Stock:           row.Stock,
-	// 	CreatedAt:       row.CreatedAt,
-	// 	Brand: dto.BrandResponse{
-	// 		ID:   row.BrandID,
-	// 		Name: row.BrandName,
-	// 	},
-	// 	Images: imageProductMap,
-	// }
+		response.Variants = append(response.Variants, dto.ProductVariantResponse{
+			Sku:            v.Sku,
+			Price:          v.Price,
+			Stock:          v.Stock,
+			Images:         variantImages,
+			AttributeGroup: attributeGroups,
+		})
 
-	return &row, err
+	}
+
+	return &response, nil
 }
 
 func UpdateProduct(product *models.Product) error {
@@ -349,4 +390,127 @@ func ReorderProductImages(req helper.ReorderProductImagesRequest) error {
 	}
 
 	return tx.Commit().Error
+}
+
+func GetBrands() ([]models.Brand, error) {
+	var brands []models.Brand
+	err := config.DB.Model(&models.Brand{}).Find(&brands).Error
+	return brands, err
+}
+
+func CreateBrand(name string) error {
+	brand := models.Brand{
+		Name: name,
+	}
+	err := config.DB.Create(&brand).Error
+	return err
+}
+
+func CreateAttribute(name string) error {
+	attribute := models.AttributeType{
+		Name: name,
+	}
+	err := config.DB.Create(&attribute).Error
+	return err
+}
+
+func CreateAttributeValue(value string, typeId uuid.UUID) error {
+	attributeValue := models.AttributeValue{
+		Value:           value,
+		AttributeTypeID: typeId,
+	}
+	err := config.DB.Create(&attributeValue).Error
+	return err
+}
+
+func GetVariantById(productId string, variantId string) (*dto.ProductVariantResponse, error) {
+	var variant models.ProductVariant
+	err := config.DB.Where("product_id = ? AND id = ?", productId, variantId).
+		Preload("Images").
+		Preload("VariantAttributes.AttributeValue.AttributeType").
+		First(&variant).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var productvariant dto.ProductVariantResponse = dto.ProductVariantResponse{
+		Sku:             variant.Sku,
+		Price:           variant.Price,
+		DiscountPercent: variant.DiscountPercent,
+		FinalPrice:      variant.Price - (variant.Price * variant.DiscountPercent / 100),
+		Stock:           variant.Stock,
+	}
+
+	var variantImages []dto.ProductImageResponse
+	for _, img := range variant.Images {
+		variantImages = append(variantImages, dto.ProductImageResponse{
+			Id:        img.ID.String(),
+			URL:       img.ImageURL,
+			IsPrimary: img.IsPrimary,
+			PublicId:  img.PublicID,
+		})
+	}
+
+	var attributeGroups []dto.AttributeGroup
+	for _, va := range variant.VariantAttributes {
+		attributeGroups = append(attributeGroups, dto.AttributeGroup{
+			Name: va.AttributeValue.AttributeType.Name,
+			Values: []dto.AttributeValueResponse{
+				{
+					ID:    va.AttributeValue.ID.String(),
+					Value: va.AttributeValue.Value,
+				},
+			},
+		})
+	}
+
+	productvariant.Images = variantImages
+	productvariant.AttributeGroup = attributeGroups
+	return &productvariant, nil
+}
+
+func GetVariantByVariantId(variantId string) (*dto.ProductVariantResponse, error) {
+	var variant models.ProductVariant
+	err := config.DB.Where("id = ?", variantId).
+		Preload("Images").
+		Preload("VariantAttributes.AttributeValue.AttributeType").
+		First(&variant).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var productvariant dto.ProductVariantResponse = dto.ProductVariantResponse{
+		Sku:             variant.Sku,
+		Price:           variant.Price,
+		DiscountPercent: variant.DiscountPercent,
+		FinalPrice:      variant.Price - (variant.Price * variant.DiscountPercent / 100),
+		Stock:           variant.Stock,
+	}
+
+	var variantImages []dto.ProductImageResponse
+	for _, img := range variant.Images {
+		variantImages = append(variantImages, dto.ProductImageResponse{
+			Id:        img.ID.String(),
+			URL:       img.ImageURL,
+			IsPrimary: img.IsPrimary,
+			PublicId:  img.PublicID,
+		})
+	}
+
+	var attributeGroups []dto.AttributeGroup
+	for _, va := range variant.VariantAttributes {
+		attributeGroups = append(attributeGroups, dto.AttributeGroup{
+			Name: va.AttributeValue.AttributeType.Name,
+			Values: []dto.AttributeValueResponse{
+				{
+					ID:    va.AttributeValue.ID.String(),
+					Value: va.AttributeValue.Value,
+				},
+			},
+		})
+	}
+
+	productvariant.Images = variantImages
+	productvariant.AttributeGroup = attributeGroups
+	return &productvariant, nil
 }

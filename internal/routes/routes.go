@@ -32,7 +32,7 @@ func SetRoutes(r *gin.Engine) {
 	product := r.Group("/products")
 	{
 		product.GET("/all", handlers.GetAllProducts)
-
+		product.GET("/filters", handlers.GetFilters)
 		productProtected := product.Group("/")
 		productProtected.Use(middleware.AuthMiddleware())
 		{
@@ -41,6 +41,9 @@ func SetRoutes(r *gin.Engine) {
 			productProtected.PUT("/:id", handlers.UpdateProduct)
 			productProtected.DELETE("/:id", handlers.DeleteProduct)
 			productProtected.PATCH("/reorder-images", handlers.ProductImagesReorder)
+			productProtected.POST("/brand/create", handlers.CreateNewBrand)
+			productProtected.POST("/attribute/create", handlers.CreateNewAttribute)
+			productProtected.POST("/attribute/value/create/:attributeId", handlers.CreateNewAttributeValue)
 		}
 	}
 

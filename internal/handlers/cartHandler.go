@@ -20,6 +20,7 @@ import (
 
 type AddCartItemRequest struct {
 	ProductID uuid.UUID `json:"product_id" binding:"required"`
+	VariantID uuid.UUID `json:"variant_id" binding:"required"`
 	Quantity  int       `json:"quantity" binding:"required,min=1"`
 }
 
@@ -100,19 +101,19 @@ func AddOrUpdateCartItem(c *gin.Context) {
 		}
 
 	}
-	product, err := repository.GetProductByUUID(req.ProductID)
+	productVariant, err := repository.GetVariantById(req.ProductID.String(), req.VariantID.String())
 	if err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, "Product does not exist", nil)
 		return
 	}
-	cartItem, err := repository.GetCartItem(cart.ID, req.ProductID)
+	cartItem, err := repository.GetCartItem(cart.ID, req.ProductID, req.VariantID)
 	currentQtyInCart := 0
 
 	if err == nil {
 		// Update quantity
 		currentQtyInCart = cartItem.Quantity
 		cartItem.Quantity += req.Quantity
-		if product.Stock < (req.Quantity + currentQtyInCart) {
+		if productVariant.Stock < (req.Quantity + currentQtyInCart) {
 			utils.ResponseError(c, http.StatusBadRequest, "Product out of stock", nil)
 			return
 		}
@@ -122,13 +123,13 @@ func AddOrUpdateCartItem(c *gin.Context) {
 		}
 	} else if errors.Is(err, gorm.ErrRecordNotFound) {
 		// Add new cart item
-		if (currentQtyInCart + req.Quantity) > product.Stock {
+		if (currentQtyInCart + req.Quantity) > productVariant.Stock {
 			utils.ResponseError(c, http.StatusBadRequest, "Product out of stock", nil)
 			return
 		}
 		err := repository.CreateCartItem(&models.CartItems{
 			CartID:    cart.ID,
-			ProductID: req.ProductID,
+			VariantID: req.VariantID,
 			Quantity:  req.Quantity,
 		})
 		if err != nil {

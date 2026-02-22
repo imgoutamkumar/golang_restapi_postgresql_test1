@@ -53,31 +53,60 @@ func GenerateOtp() string {
 }
 
 func MapProductToResponse(p *models.Product) dto.ProductResponse {
-	finalPrice := p.BasePrice - (p.BasePrice * p.DiscountPercent / 100)
-
-	images := []dto.ProductImageResponse{}
-	for _, img := range p.ProductImages {
-		images = append(images, dto.ProductImageResponse{
-			URL:       img.ImageUrl,
-			IsPrimary: img.IsPrimary,
-			PublicId:  img.PublicId,
+	varients := []dto.ProductVariantResponse{}
+	for _, v := range p.Variants {
+		variantImages := []dto.ProductImageResponse{}
+		for _, img := range v.Images {
+			variantImages = append(variantImages, dto.ProductImageResponse{
+				URL:       img.ImageURL,
+				IsPrimary: img.IsPrimary,
+				PublicId:  img.PublicID,
+			})
+		}
+		varients = append(varients, dto.ProductVariantResponse{
+			Sku:             v.Sku,
+			Price:           v.Price,
+			DiscountPercent: v.DiscountPercent,
+			FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
+			Stock:           v.Stock,
+			Images:          variantImages,
 		})
 	}
 
 	return dto.ProductResponse{
-		ID:              p.ID.String(),
-		Name:            p.Name,
-		ShortDesc:       p.ShortDescription,
-		BasePrice:       p.BasePrice,
-		DiscountPercent: p.DiscountPercent,
-		FinalPrice:      finalPrice,
-		Currency:        p.Currency,
-		Stock:           p.NumberOfStock,
+		ID:        p.ID.String(),
+		Name:      p.Name,
+		ShortDesc: p.ShortDescription,
+		Currency:  p.Currency,
+		CreatedBy: p.CreatedBy.String(),
+		CreatedAt: p.CreatedAt,
 		Brand: dto.BrandResponse{
-			ID:   p.Brand.ID.String(),
+			ID:   p.BrandID.String(),
 			Name: p.Brand.Name,
 		},
-		Images:    images,
-		CreatedAt: p.CreatedAt,
 	}
+}
+
+func GenerateCombinations(input [][]uuid.UUID) [][]uuid.UUID {
+	if len(input) == 0 {
+		return [][]uuid.UUID{}
+	}
+
+	result := [][]uuid.UUID{{}}
+
+	for _, values := range input {
+		var temp [][]uuid.UUID
+
+		for _, r := range result {
+			for _, v := range values {
+				combination := append([]uuid.UUID{}, r...)
+				combination = append(combination, v)
+				temp = append(temp, combination)
+			}
+		}
+
+		result = temp
+	}
+
+	return result
 }

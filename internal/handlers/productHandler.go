@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"mime/multipart"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -72,7 +70,7 @@ func GetProductById(c *gin.Context) {
 }
 
 func CreateNewProduct(c *gin.Context) {
-	var req helper.CreateProductRequest
+	var req dto.CreateProductRequest
 	val, ok := c.Get("userId")
 	if !ok {
 		utils.ResponseError(c, http.StatusUnauthorized, "Unauthorized", nil)
@@ -90,7 +88,7 @@ func CreateNewProduct(c *gin.Context) {
 		return
 	}
 
-	brandUUID, _ := uuid.Parse(req.BrandID)
+	// brandUUID, _ := uuid.Parse(req.BrandID)
 
 	if err := config.Validate.Struct(req); err != nil {
 		log.Printf("%+v\n", err)
@@ -98,91 +96,18 @@ func CreateNewProduct(c *gin.Context) {
 		return
 	}
 
-	if err := helper.CustomValidate(&req); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, "Validation failed.", err)
+	if err := helper.PriceValidate(&req, 0); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Price validation failed", err)
 		return
 	}
+	_, err = services.CreateProductService(c, &req, userId.String())
 
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	var uploadErr error
-	// var modelImages []models.ProductImages
-	modelImages := make([]models.ProductImages, len(req.ImageFiles))
-	uploadedURLs := []string{}
-	for i, fileHeader := range req.ImageFiles {
-		wg.Add(1)
-
-		go func(i int, fileHeader *multipart.FileHeader) {
-			defer wg.Done()
-
-			uploadFileData, err := utils.UploadFileToCloudinary(fileHeader)
-			if err != nil {
-				uploadErr = err
-				return
-			}
-
-			mu.Lock()
-			uploadedURLs = append(uploadedURLs, uploadFileData.ImageUrl)
-
-			// modelImages = append(modelImages, models.ProductImages{
-			// 	ImageUrl:  uploadFileData.ImageUrl,
-			// 	IsPrimary: (i == req.PrimaryIndex),
-			// 	SortOrder: i,
-			// 	PublicId:  uploadFileData.Public_Id,
-			// })
-
-			// assign by index (NOT append)
-			modelImages[i] = models.ProductImages{
-				ImageUrl:  uploadFileData.ImageUrl,
-				IsPrimary: (i == req.PrimaryIndex), // selected primary
-				SortOrder: i,                       // maintain order
-				PublicId:  uploadFileData.Public_Id,
-			}
-			mu.Unlock()
-
-		}(i, fileHeader)
-	}
-
-	wg.Wait()
-
-	if uploadErr != nil {
-		for _, url := range uploadedURLs {
-			utils.DeleteFile(url)
-		}
-		utils.ResponseError(c, 500, "Image upload failed", uploadErr)
-		return
-	}
-
-	product := models.Product{
-		Name:             req.Name,
-		ShortDescription: req.Description,
-		BasePrice:        req.BasePrice,
-		CreatedBy:        userId,
-		DiscountPercent:  req.DiscountPercent,
-		NumberOfStock:    req.NumberOfStock,
-		BrandID:          brandUUID,
-		// Category:         req.Category,
-		Currency:       req.Currency,
-		Status:         req.Status,
-		IsReturnable:   req.IsReturnable,
-		IsCODAvailable: req.IsCODAvailable,
-		Description:    req.Description,
-		ProductImages:  modelImages,
-	}
-	createdProduct, err := repository.CreateProduct(&product)
-	if err != nil {
-		for _, url := range uploadedURLs {
-			utils.DeleteFile(url)
-		}
-		utils.ResponseError(c, http.StatusInternalServerError, "Error While creating product", err)
-		return
-	}
-	response := utils.MapProductToResponse(createdProduct)
+	// response := utils.MapProductToResponse(createdProduct)
 
 	c.JSON(201, gin.H{
 		"status":  "success",
 		"message": "Product created successfully",
-		"data":    response,
+		"data":    nil,
 	})
 }
 
@@ -234,14 +159,12 @@ func DeleteProduct(c *gin.Context) {
 
 }
 
-// some helper function to get product with caching
 func GetProductWithCache(productID uuid.UUID) (*dto.ProductResponse, error) {
 	ctx := context.Background()
 	cacheKey := fmt.Sprintf("product:details:%s", productID.String())
 
 	val, err := config.RDB.Get(ctx, cacheKey).Result()
 	if err == nil {
-		// Cache Hit! Unmarshal JSON to Struct
 		var product dto.ProductResponse
 		if jsonErr := json.Unmarshal([]byte(val), &product); jsonErr == nil {
 			return &product, nil
@@ -256,24 +179,20 @@ func GetProductWithCache(productID uuid.UUID) (*dto.ProductResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	images, err := services.GetProductImages(product.ID)
+	// images, err := services.GetProductImages(product.ID)
 
 	response := dto.ProductResponse{
-		ID:              product.ID,
-		Name:            product.Name,
-		ShortDesc:       product.ShortDescription,
-		BasePrice:       product.BasePrice,
-		DiscountPercent: product.DiscountPercent,
-		FinalPrice:      product.FinalPrice,
-		Currency:        product.Currency,
-		Stock:           product.Stock,
-		CreatedBy:       product.CreatedBy,
-		CreatedAt:       product.CreatedAt,
+		ID:        product.ID,
+		Name:      product.Name,
+		ShortDesc: product.ShortDesc,
+		Currency:  product.Currency,
+		CreatedBy: product.CreatedBy,
+		CreatedAt: product.CreatedAt,
 		Brand: dto.BrandResponse{
-			ID:   product.BrandID,
-			Name: product.BrandName,
+			ID:   product.Brand.ID,
+			Name: product.Brand.Name,
 		},
-		Images: images,
+		// varients: images,
 	}
 
 	// here use goroutine to set cache asynchronouslys
@@ -298,4 +217,101 @@ func ProductImagesReorder(c *gin.Context) {
 		return
 	}
 	utils.ResponseSuccess(c, http.StatusOK, "product images reorder successfully", nil)
+}
+
+func GetFilters(c *gin.Context) {
+	brands, err := repository.GetBrands()
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch brands", nil)
+		return
+	}
+	responses := make([]dto.BrandResponse, 0, len(brands))
+	for _, brand := range brands {
+		responses = append(responses, dto.BrandResponse{
+			ID:   brand.ID.String(),
+			Name: brand.Name,
+		})
+
+	}
+	finalResponses := dto.FiltersResponse{
+		Brands: responses,
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "Success",
+		"message": "data fetched in successfully",
+		"data":    finalResponses,
+	})
+}
+
+func CreateNewBrand(c *gin.Context) {
+	var req dto.CreateBrandRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+	err := repository.CreateBrand(req.Name)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create brand", nil)
+		return
+	}
+	// response := dto.BrandResponse{
+	// 	ID:   createdBrand.ID.String(),
+	// 	Name: createdBrand.Name,
+	// }
+	utils.ResponseSuccess(c, http.StatusOK, "brand created successfully", nil)
+}
+
+func CreateNewAttribute(c *gin.Context) {
+	var req dto.CreateAttributeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+	err := repository.CreateAttribute(req.Name)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create attribute", nil)
+		return
+	}
+	utils.ResponseSuccess(c, http.StatusOK, "attribute created successfully", nil)
+}
+
+func CreateNewAttributeValue(c *gin.Context) {
+	attributeId := c.Param("attributeId") // returns string
+	id, err := uuid.Parse(attributeId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	var req dto.CreateAttributeValueRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	err = repository.CreateAttributeValue(req.Value, id)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create attribute value", nil)
+		return
+	}
+	utils.ResponseSuccess(c, http.StatusCreated, "attribute value created successfully", nil)
+}
+
+func GetAllAttributes(c *gin.Context) {
+
+}
+
+func GetAllAttributeValues(c *gin.Context) {
+
+}
+
+func GetAttributeValuesByAttributeId(c *gin.Context) {
+
+}
+
+func GetAttributeValueById(c *gin.Context) {
+
+}
+
+func GetAttributeById(c *gin.Context) {
+
 }

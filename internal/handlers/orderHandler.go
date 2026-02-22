@@ -39,27 +39,28 @@ func Checkout(c *gin.Context) {
 
 	for _, item := range cart.CartItems {
 
-		product, err := repository.GetProductByUUID(item.ProductID)
+		productVariant, err := repository.GetVariantByVariantId(item.VariantID.String())
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Product does not exist": err})
 			return
 		}
-		if product.Stock < item.Quantity {
-			utils.ResponseError(c, http.StatusBadRequest, "Product is ut of stock", nil)
+		if productVariant.Stock < item.Quantity {
+			utils.ResponseError(c, http.StatusBadRequest, "Product is out of stock", nil)
+			return
 		}
 
 		// Deduct Stock
-		product.Stock = product.Stock - item.Quantity
-		// repository.UpdateProduct(product)
+		productVariant.Stock = productVariant.Stock - item.Quantity
+		// repository.UpdateProduct(productVariant)
 
 		finalOrderItems = append(finalOrderItems, models.OrderItem{
-			ProductID:    item.ProductID,
+			VariantID:    item.VariantID,
 			Quantity:     item.Quantity,
-			ProductPrice: product.BasePrice,
+			ProductPrice: productVariant.Price,
 		})
 
 		// calculate total
-		total += product.BasePrice * float64(item.Quantity)
+		total += productVariant.Price * float64(item.Quantity)
 
 	}
 	// 3. Create Order

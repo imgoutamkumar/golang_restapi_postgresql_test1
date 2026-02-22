@@ -39,11 +39,11 @@ func UpdateCartItem(cartItem *models.CartItems) error {
 		}).Error
 }
 
-func GetCartItem(cartId uuid.UUID, productId uuid.UUID) (*models.CartItems, error) {
+func GetCartItem(cartId uuid.UUID, productId uuid.UUID, variantId uuid.UUID) (*models.CartItems, error) {
 	var cartItem models.CartItems
 
 	err := config.DB.
-		Where("cart_id = ? AND product_id = ?", cartId, productId).
+		Where("cart_id = ? AND product_id = ? AND variant_id = ?", cartId, productId, variantId).
 		First(&cartItem).
 		Error
 

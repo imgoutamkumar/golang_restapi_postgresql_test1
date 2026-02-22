@@ -19,35 +19,47 @@ DROP INDEX IF EXISTS ux_product_primary_image;
 DROP INDEX IF EXISTS idx_order_items_order_id;
 DROP INDEX IF EXISTS idx_orders_user_id;
 DROP INDEX IF EXISTS idx_users_email;
+
 -- =========================
--- DROP TABLES (DEPENDENCY ORDER)
+-- DROP ECOM TABLES (child → parent)
 -- =========================
-DROP TABLE IF EXISTS cart_items;
-DROP TABLE IF EXISTS carts;
 
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS orders;
+-- cart + order
+DROP TABLE IF EXISTS cart_items CASCADE;
+DROP TABLE IF EXISTS carts CASCADE;
 
--- password reset depends on users
-DROP TABLE IF EXISTS password_reset;
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
 
-DROP TABLE IF EXISTS product_images;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS brands;
+-- password reset
+DROP TABLE IF EXISTS password_reset CASCADE;
 
+-- variant system
+DROP TABLE IF EXISTS variant_attributes CASCADE;
+DROP TABLE IF EXISTS product_variants CASCADE;
 
+-- product images
+DROP TABLE IF EXISTS product_images CASCADE;
 
--- RBAC dependency
-DROP TABLE IF EXISTS role_permissions;
-DROP TABLE IF EXISTS permissions;
+-- products
+DROP TABLE IF EXISTS products CASCADE;
 
--- DROP TABLE IF EXISTS user_role;
--- users depends on roles
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS roles;
+-- catalog
+DROP TABLE IF EXISTS attribute_values CASCADE;
+DROP TABLE IF EXISTS attribute_types CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS brands CASCADE;
+
+-- RBAC
+DROP TABLE IF EXISTS role_permissions CASCADE;
+DROP TABLE IF EXISTS permissions CASCADE;
+
+-- users
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
 
 -- =========================
 -- DROP ENUM TYPES
 -- =========================
-DROP TYPE IF EXISTS product_status;
-DROP TYPE IF EXISTS order_status;
+DROP TYPE IF EXISTS product_status CASCADE;
+DROP TYPE IF EXISTS order_status CASCADE;
