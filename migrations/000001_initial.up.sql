@@ -102,8 +102,8 @@ CREATE TABLE IF NOT EXISTS banners (
     created_by UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    deleted_at TIMESTAMPTZ,
-    CONSTRAINT fk_banners_users FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE
+    deleted_at TIMESTAMPTZ ,
+    CONSTRAINT fk_banners_users FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS banner_images (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
