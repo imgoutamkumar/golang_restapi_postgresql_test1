@@ -42,8 +42,7 @@ func UploadFileToCloudinary(fileHeader *multipart.FileHeader, folder string) (*U
 	return response, nil
 }
 
-func DeleteFileFromCloudinary(url string) error {
-	publicID := "abc"
+func DeleteFileFromCloudinary(publicID string) error {
 	_, err := config.CLD.Upload.Destroy(
 		context.Background(),
 		uploader.DestroyParams{

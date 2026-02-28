@@ -22,3 +22,18 @@ type User struct {
 
 	Orders []Order `gorm:"foreignKey:UserID"`
 }
+
+type Role struct {
+	ID   uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name string    `gorm:"size:50;not null"`
+}
+
+type PasswordReset struct {
+	ID           string    `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID       string    `gorm:"type:uuid;not null"`
+	OTPHash      string    `gorm:"type:varchar(255);not null"`
+	AttemptCount int       `gorm:"not null;default:0"`
+	ExpiresAt    time.Time `gorm:"not null"`
+	LockedAt     time.Time `gorm:""`
+	CreatedAt    time.Time `gorm:"not null;default:now()"`
+}

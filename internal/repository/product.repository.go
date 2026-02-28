@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
@@ -102,6 +104,7 @@ func CreateNewProduct(product *models.Product) error {
 }
 
 func GetAllProducts(
+	userID *uuid.UUID,
 	page string,
 	limit string,
 	search string,
@@ -178,17 +181,51 @@ func GetAllProducts(
 	for _, p := range products {
 		productIDs = append(productIDs, p.ID)
 	}
-
+	fmt.Println("All Product ids", productIDs)
 	// ---------------- FETCH VARIANTS ----------------
 	var variants []models.ProductVariant
 	err = config.DB.
-		Where("product_id IN ? AND is_default = true", productIDs).
+		Where("product_id IN (?) AND is_default = ?", productIDs, true).
 		Preload("Images", "is_primary = ?", true).
 		Find(&variants).Error
 	if err != nil {
 		return nil, 0, err
 	}
+	fmt.Println("Fetched variants:", len(variants))
+	variantMap := make(map[uuid.UUID][]models.ProductVariant)
 
+	for _, v := range variants {
+		variantMap[v.ProductID] = append(variantMap[v.ProductID], v)
+	}
+	fmt.Println("Fetched variantMap:", variantMap)
+
+	// ---------------- FETCH WISHLISTED VARIANT IDS IF USER LOGGED IN ----------------
+	wishlistMap := make(map[uuid.UUID]bool)
+
+	if userID != nil {
+
+		type WishlistProduct struct {
+			ProductID uuid.UUID
+		}
+
+		var wishlistProducts []WishlistProduct
+
+		err = config.DB.
+			Table("wishlist_items wi").
+			Select("DISTINCT pv.product_id").
+			Joins("JOIN product_variants pv ON pv.id = wi.variant_id").
+			Joins("JOIN wishlists w ON w.id = wi.wishlist_id").
+			Where("w.user_id = ?", *userID).
+			Scan(&wishlistProducts).Error
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		for _, item := range wishlistProducts {
+			wishlistMap[item.ProductID] = true
+		}
+	}
 	// ---------------- BUILD RESPONSE ----------------
 	var responses []dto.ProductResponse
 
@@ -204,12 +241,16 @@ func GetAllProducts(
 				ID:   p.Brand.ID.String(),
 				Name: p.Brand.Name,
 			},
+			IsWishlisted: wishlistMap[p.ID],
 		}
 
 		var variantResponses []dto.ProductVariantResponse
-
+		// wishlistedVariantIds, err := services.GetWishlistedVariantIds()
+		if err != nil {
+			fmt.Println("Error fetching wishlisted variant IDs:", err)
+		}
 		for _, v := range variants {
-
+			fmt.Println("Processing variant:", v)
 			var variantImages []dto.ProductImageResponse
 			for _, img := range v.Images {
 				variantImages = append(variantImages, dto.ProductImageResponse{
@@ -250,7 +291,9 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 	var variants []models.ProductVariant
 
 	if err := db.
-		Preload("Images").
+		Preload("Images", func(db *gorm.DB) *gorm.DB {
+			return db.Where("deleted_at IS NULL").Order("sort_order ASC")
+		}).
 		Preload("VariantAttributes.AttributeValue.AttributeType").
 		Where("product_id = ?", id).
 		Find(&variants).Error; err != nil {
@@ -278,7 +321,7 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 				PublicId:  img.PublicID,
 			})
 		}
-
+		fmt.Println("variants Attributes", v.VariantAttributes)
 		// build attribute groups
 		attrGroupMap := make(map[string][]dto.AttributeValueResponse)
 		for _, va := range v.VariantAttributes {
@@ -305,7 +348,7 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 		})
 
 	}
-
+	fmt.Println("response", response)
 	return &response, nil
 }
 
@@ -357,9 +400,9 @@ func CreateNewProductOptimalApproach(product *models.Product) (*models.Product, 
 	return &result, nil
 }
 
-func GetImagesByProductID(productID string) ([]models.ProductImages, error) {
+func GetImagesByProductID(productID string) ([]models.ProductImage, error) {
 
-	var images []models.ProductImages
+	var images []models.ProductImage
 
 	err := config.DB.Table("product_images").
 		Select("id, image_url, is_primary, public_id").
@@ -414,10 +457,11 @@ func CreateAttribute(name string) error {
 	return err
 }
 
-func CreateAttributeValue(value string, typeId uuid.UUID) error {
+func CreateAttributeValue(req dto.CreateAttributeValueRequest, typeId uuid.UUID) error {
 	attributeValue := models.AttributeValue{
-		Value:           value,
+		Value:           req.Value,
 		AttributeTypeID: typeId,
+		MetaInfo:        req.MetaInfo,
 	}
 	err := config.DB.Create(&attributeValue).Error
 	return err
@@ -513,4 +557,73 @@ func GetVariantByVariantId(variantId string) (*dto.ProductVariantResponse, error
 	productvariant.Images = variantImages
 	productvariant.AttributeGroup = attributeGroups
 	return &productvariant, nil
+}
+
+func GetNewArrivals() ([]dto.ProductResponse, error) {
+	var products []models.Product
+	err := config.DB.
+		Preload("Brand").
+		Order("created_at DESC").
+		Limit(10).
+		Find(&products).Error
+	if err != nil {
+		return nil, err
+	}
+	var responses []dto.ProductResponse
+	for _, product := range products {
+		responses = append(responses, dto.ProductResponse{
+			ID:        product.ID.String(),
+			Name:      product.Name,
+			ShortDesc: product.ShortDescription,
+			Currency:  product.Currency,
+			CreatedBy: product.CreatedBy.String(),
+			CreatedAt: product.CreatedAt,
+			Brand: dto.BrandResponse{
+				ID:   product.Brand.ID.String(),
+				Name: product.Brand.Name,
+			},
+		})
+
+		variants := []models.ProductVariant{}
+		err = config.DB.
+			Where("product_id = ? AND created_at > ? AND status = ?", product.ID, time.Now().AddDate(0, 0, -30), "active").
+			Preload("Images", "is_primary = ?", true).
+			Order("created_at DESC").Limit(10).
+			Find(&variants).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return responses, nil
+}
+
+func CreateCategory(req dto.CreateCategoryRequest) error {
+	if req.ParentID != nil {
+		var count int64
+		config.DB.Model(&models.Category{}).
+			Where("id = ?", *req.ParentID).
+			Count(&count)
+
+		if count == 0 {
+			return errors.New("parent category not found")
+		}
+	}
+	category := models.Category{
+		Name:     req.Name,
+		ParentID: req.ParentID,
+	}
+	err := config.DB.Create(&category).Error
+	return err
+}
+
+func GetProductIdsFromVariantIds(variantIds []uuid.UUID) ([]uuid.UUID, error) {
+	var productIds []uuid.UUID
+	err := config.DB.Model(&models.ProductVariant{}).
+		Where("id IN ?", variantIds).
+		Pluck("DISTINCT product_id", &productIds).Error
+	if err != nil {
+		return nil, err
+	}
+	return productIds, nil
 }

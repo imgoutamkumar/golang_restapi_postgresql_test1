@@ -39,11 +39,11 @@ func UpdateCartItem(cartItem *models.CartItems) error {
 		}).Error
 }
 
-func GetCartItem(cartId uuid.UUID, productId uuid.UUID, variantId uuid.UUID) (*models.CartItems, error) {
+func GetCartItem(cartId uuid.UUID, variantId uuid.UUID) (*models.CartItems, error) {
 	var cartItem models.CartItems
 
 	err := config.DB.
-		Where("cart_id = ? AND product_id = ? AND variant_id = ?", cartId, productId, variantId).
+		Where("cart_id = ? AND variant_id = ?", cartId, variantId).
 		First(&cartItem).
 		Error
 
@@ -54,16 +54,16 @@ func GetCartItems(cartId uuid.UUID) ([]models.CartItems, error) {
 	var items []models.CartItems
 	err := config.DB.
 		Where("cart_id = ?", cartId).
-		Preload("Product").
+		Preload("ProductVariant").
 		Find(&items).
 		Error
 	return items, err
 }
 
-func RemoveCartItemFrom(cartId uuid.UUID, productId uuid.UUID) error {
+func RemoveCartItemFrom(cartId uuid.UUID, variantId uuid.UUID) error {
 	return config.DB.
 		Unscoped().
-		Where("cart_id = ? AND product_id = ?", cartId, productId).
+		Where("cart_id = ? AND variant_id = ?", cartId, variantId).
 		Delete(&models.CartItems{}).
 		Error
 }

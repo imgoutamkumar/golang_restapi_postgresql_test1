@@ -2,11 +2,9 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -35,7 +33,15 @@ func GetAllProducts(c *gin.Context) {
 	minPrice := c.Query("minPrice")
 	maxPrice := c.Query("maxPrice")
 	discount := c.Query("discount")
-	products, total, err := repository.GetAllProducts(page, limit, search, brand, minPrice, maxPrice, discount)
+	userIdStr, _ := c.Get("userId")
+	var userId *uuid.UUID
+	if userIdStr != nil {
+		parsedUserId, err := uuid.Parse(userIdStr.(string))
+		if err == nil {
+			userId = &parsedUserId
+		}
+	}
+	products, total, err := repository.GetAllProducts(userId, page, limit, search, brand, minPrice, maxPrice, discount)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, "Something went wrong", nil)
 		return
@@ -82,26 +88,30 @@ func CreateNewProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"invalid userid": err})
 		return
 	}
+	fmt.Printf("User ID from context: %s\n", userId.String())
 
 	if err := c.ShouldBind(&req); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, "Invalid form data", err)
+		utils.ResponseError(c, http.StatusBadRequest, "Invalid form data", err.Error())
 		return
 	}
-
 	// brandUUID, _ := uuid.Parse(req.BrandID)
 
-	if err := config.Validate.Struct(req); err != nil {
-		log.Printf("%+v\n", err)
-		utils.ResponseError(c, http.StatusBadRequest, "Validation failed", err)
+	// if err := config.Validate.Struct(req); err != nil {
+	// 	log.Printf("%+v\n", err)
+	// 	utils.ResponseError(c, http.StatusBadRequest, "Validation failed", err)
+	// 	return
+	// }
+
+	// if err := helper.PriceValidate(&req, 0); err != nil {
+	// 	utils.ResponseError(c, http.StatusBadRequest, "Price validation failed", err)
+	// 	return
+	// }
+	_, err = services.CreateProductService(c, &req, userId)
+
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create product", err.Error())
 		return
 	}
-
-	if err := helper.PriceValidate(&req, 0); err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, "Price validation failed", err)
-		return
-	}
-	_, err = services.CreateProductService(c, &req, userId.String())
-
 	// response := utils.MapProductToResponse(createdProduct)
 
 	c.JSON(201, gin.H{
@@ -160,20 +170,20 @@ func DeleteProduct(c *gin.Context) {
 }
 
 func GetProductWithCache(productID uuid.UUID) (*dto.ProductResponse, error) {
-	ctx := context.Background()
-	cacheKey := fmt.Sprintf("product:details:%s", productID.String())
+	// ctx := context.Background()
+	// cacheKey := fmt.Sprintf("product:details:%s", productID.String())
 
-	val, err := config.RDB.Get(ctx, cacheKey).Result()
-	if err == nil {
-		var product dto.ProductResponse
-		if jsonErr := json.Unmarshal([]byte(val), &product); jsonErr == nil {
-			return &product, nil
-		}
-	}
+	// val, err := config.RDB.Get(ctx, cacheKey).Result()
+	// if err == nil {
+	// 	var product dto.ProductResponse
+	// 	if jsonErr := json.Unmarshal([]byte(val), &product); jsonErr == nil {
+	// 		return &product, nil
+	// 	}
+	// }
 
-	if err != nil {
-		fmt.Println("Redis error:", err)
-	}
+	// if err != nil {
+	// 	fmt.Println("Redis error:", err)
+	// }
 
 	product, err := repository.GetProductByUUID(productID)
 	if err != nil {
@@ -192,14 +202,15 @@ func GetProductWithCache(productID uuid.UUID) (*dto.ProductResponse, error) {
 			ID:   product.Brand.ID,
 			Name: product.Brand.Name,
 		},
-		// varients: images,
+		Variants: product.Variants,
 	}
 
 	// here use goroutine to set cache asynchronouslys
-	go func() {
-		data, _ := json.Marshal(response)
-		config.RDB.Set(ctx, cacheKey, data, 1*time.Hour)
-	}()
+
+	// go func() {
+	// 	data, _ := json.Marshal(response)
+	// 	config.RDB.Set(ctx, cacheKey, data, 1*time.Hour)
+	// }()
 
 	return &response, nil
 }
@@ -288,7 +299,7 @@ func CreateNewAttributeValue(c *gin.Context) {
 		return
 	}
 
-	err = repository.CreateAttributeValue(req.Value, id)
+	err = repository.CreateAttributeValue(req, id)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create attribute value", nil)
 		return
@@ -313,5 +324,51 @@ func GetAttributeValueById(c *gin.Context) {
 }
 
 func GetAttributeById(c *gin.Context) {
+
+}
+
+func GetNewArrivals(c *gin.Context) {
+
+}
+
+func GetBestSellers(c *gin.Context) {
+
+}
+
+func GetProductsByCategory(c *gin.Context) {
+
+}
+
+func CreateNewCategory(c *gin.Context) {
+	var req dto.CreateCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+	if err := config.Validate.Struct(req); err != nil {
+		log.Printf("%+v\n", err)
+		utils.ResponseError(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+	if err := repository.CreateCategory(req); err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create category", nil)
+		return
+	}
+	utils.ResponseSuccess(c, http.StatusCreated, "category created successfully", nil)
+}
+
+func GetAllCategories(c *gin.Context) {
+
+}
+
+func GetCategoryById(c *gin.Context) {
+
+}
+
+func UpdateCategory(c *gin.Context) {
+
+}
+
+func DeleteCategory(c *gin.Context) {
 
 }

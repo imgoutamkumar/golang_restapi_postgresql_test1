@@ -33,7 +33,7 @@ func IsNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
 }
 
-func DeleteFile(fileURL string) error {
+func DeleteFileByPublicID(PublicID string) error {
 	// OPTION A: Delete from Local Disk
 	// path := "." + fileURL // assuming fileURL is like "/uploads/filename.jpg"
 	// return os.Remove(path)

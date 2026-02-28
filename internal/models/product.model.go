@@ -23,8 +23,13 @@ type Brand struct {
 }
 
 type Category struct {
-	ID   uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Name string
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Name      string     `gorm:"type:varchar(100);not null"`
+	ParentID  *uuid.UUID `gorm:"type:uuid;index"`
+	Parent    *Category  `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
+	Children  []Category `gorm:"foreignKey:ParentID"`
+	CreatedAt time.Time  `gorm:"autoCreateTime"`
+	// DeletedAt gorm.DeletedAt `gorm:"index"` // optional soft delete
 }
 
 type AttributeType struct {
@@ -60,11 +65,11 @@ type Product struct {
 	UpdatedAt        time.Time
 	DeletedAt        gorm.DeletedAt `gorm:"index"`
 
-	Brand        Brand            `gorm:"foreignKey:BrandID"`
-	Category     Category         `gorm:"foreignKey:CategoryID"`
-	Variants     []ProductVariant `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"`
-	AvgRating    float64          `gorm:"type:numeric(3,2);default:0"`
-	TotalReviews int              `gorm:"default:0"`
+	Brand    Brand            `gorm:"foreignKey:BrandID"`
+	Category Category         `gorm:"foreignKey:CategoryID"`
+	Variants []ProductVariant `gorm:"foreignKey:ProductID;constraint:OnDelete:CASCADE"`
+	// AvgRating    float64          `gorm:"type:numeric(3,2);default:0"`
+	// TotalReviews int `gorm:"default:0"`
 }
 
 type ProductVariant struct {
@@ -75,6 +80,7 @@ type ProductVariant struct {
 	Price           float64       `gorm:"type:numeric(10,2);not null"`
 	DiscountPercent float64       `gorm:"type:numeric(5,2);default:0;check:discount_percent >= 0 AND discount_percent <= 100"`
 	IsDefault       bool          `gorm:"default:false"`
+	IsWishlisted    bool          `gorm:"default:false"`
 	Stock           int           `gorm:"not null;default:0;check:stock >= 0"`
 	Status          ProductStatus `gorm:"type:varchar(20);default:'active';index"`
 	Slug            string        `gorm:"type:varchar(120);uniqueIndex"`

@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS users (
     gender VARCHAR(10) NOT NULL CHECK (gender IN ('male', 'female', 'other')),
     password VARCHAR(255) NOT NULL,
     role_id UUID NOT NULL,
+    avatar_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ,
@@ -89,6 +90,46 @@ CREATE TABLE IF NOT EXISTS user_addresses (
     deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_addresses_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS banners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+      type VARCHAR(50) NOT NULL, -- hero, sale, promo,
+    is_active BOOLEAN DEFAULT true,
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+    CONSTRAINT fk_banners_users FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE
+);
+CREATE TABLE IF NOT EXISTS banner_images (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    banner_id UUID NOT NULL,
+
+    image_url TEXT NOT NULL,
+    public_id VARCHAR(255) NOT NULL,
+
+    link_url TEXT,
+    title VARCHAR(255),
+    description TEXT,
+
+    is_active BOOLEAN DEFAULT true,
+    sort_order INT DEFAULT 0,
+
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
+
+    CONSTRAINT fk_banner
+        FOREIGN KEY (banner_id) REFERENCES banners(id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_banner_user
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+);
 CREATE TABLE brands (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) UNIQUE NOT NULL
@@ -98,6 +139,7 @@ CREATE TABLE categories (
     name VARCHAR(100) NOT NULL,
     parent_id UUID REFERENCES categories(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT unique_category UNIQUE(name, parent_id)
 );
 CREATE TABLE attribute_types (
@@ -146,6 +188,7 @@ CREATE TABLE product_variants (
         AND discount_percent <= 100
     ),
     is_default BOOLEAN DEFAULT false,
+    is_wishlisted BOOLEAN DEFAULT false,
     stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
     status VARCHAR(20) DEFAULT 'active',
     slug VARCHAR(120) UNIQUE,
@@ -159,8 +202,7 @@ CREATE TABLE variant_attributes (
 );
 CREATE TABLE IF NOT EXISTS product_images (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-   variant_id UUID NOT NULL,
+    variant_id UUID NOT NULL,
     image_url TEXT NOT NULL,
     public_id VARCHAR(255) NOT NULL,
     is_primary BOOLEAN DEFAULT false,
@@ -170,7 +212,6 @@ CREATE TABLE IF NOT EXISTS product_images (
     deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_product_images_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
 );
-
 CREATE TABLE IF NOT EXISTS comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -333,6 +374,8 @@ CREATE INDEX idx_comments_not_deleted ON comments(product_id)
 WHERE deleted_at IS NULL;
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_banner_active ON banners(is_active);
+CREATE INDEX idx_banner_images_banner_id ON banner_images(banner_id);
 -- Index for fast lookups when querying a product's stock
 CREATE INDEX idx_inventory_levels_variant ON inventory_levels(variant_id);
 -- Index for auditing and calculating historical stock

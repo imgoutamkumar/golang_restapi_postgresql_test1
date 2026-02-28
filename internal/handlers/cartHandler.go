@@ -106,7 +106,7 @@ func AddOrUpdateCartItem(c *gin.Context) {
 		utils.ResponseError(c, http.StatusBadRequest, "Product does not exist", nil)
 		return
 	}
-	cartItem, err := repository.GetCartItem(cart.ID, req.ProductID, req.VariantID)
+	cartItem, err := repository.GetCartItem(cart.ID, req.VariantID)
 	currentQtyInCart := 0
 
 	if err == nil {
