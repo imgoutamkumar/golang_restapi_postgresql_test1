@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/dto"
-	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/helper"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"gorm.io/gorm"
 )
@@ -416,7 +415,7 @@ func GetImagesByProductID(productID string) ([]models.ProductImage, error) {
 	return images, nil
 }
 
-func ReorderProductImages(req helper.ReorderProductImagesRequest) error {
+func ReorderProductImages(req dto.ReorderProductImagesRequest) error {
 	tx := config.DB.Begin()
 
 	for _, img := range req.Images {

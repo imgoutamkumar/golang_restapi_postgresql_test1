@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
-	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/helper"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/dto"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/repository"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/utils"
@@ -203,7 +203,7 @@ func GetFilterAndSearchUsers(c *gin.Context) {
 	}
 
 	// 2. Create the params object
-	params := helper.UserFilterParams{
+	params := dto.UserFilterParams{
 		ProductName: c.Query("productName"),
 		FullName:    c.Query("fullname"),
 		Page:        page,
@@ -226,7 +226,7 @@ func GetFilterAndSearchUsers(c *gin.Context) {
 }
 
 func SendOtpRequest(c *gin.Context) {
-	var req helper.PasswordResetRequest
+	var req dto.PasswordResetRequest
 	var reset_password models.PasswordReset
 	randomOtp := utils.GenerateOtp()
 	otpHash, err := utils.HashOtp(randomOtp)
@@ -267,7 +267,7 @@ func VerifyOtpRequest(c *gin.Context) {
 	// ensuring it hasn't expired, and then allowing the user to set a new password.
 	// genereate reset token and return to user if OTP is valid
 
-	var req helper.VerifyOtpRequestBody
+	var req dto.VerifyOtpRequestBody
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ResponseError(c, http.StatusBadRequest, "Invalid request body", nil)
 		return

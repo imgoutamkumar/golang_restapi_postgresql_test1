@@ -10,7 +10,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/dto"
-	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/helper"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/repository"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/services"
@@ -216,7 +215,7 @@ func GetProductWithCache(productID uuid.UUID) (*dto.ProductResponse, error) {
 }
 
 func ProductImagesReorder(c *gin.Context) {
-	var req helper.ReorderProductImagesRequest
+	var req dto.ReorderProductImagesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

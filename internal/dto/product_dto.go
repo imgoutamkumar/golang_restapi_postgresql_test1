@@ -107,3 +107,12 @@ type CreateAttributeValueRequest struct {
 	MetaInfo string `json:"meta_info"`
 	// AttributeTypeID uuid.UUID `json:"attribute_type_id" validate:"required"`
 }
+
+type ReorderProductImagesRequest struct {
+	ProductID string `json:"product_id" binding:"required,uuid"`
+
+	Images []struct {
+		ID        string `json:"id" binding:"required,uuid"`
+		SortOrder int    `json:"sort_order" binding:"gte=0"`
+	} `json:"images" binding:"required,min=1"`
+}

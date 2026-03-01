@@ -3,7 +3,7 @@ package repository
 import (
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
-	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/helper"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/dto"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 )
 
@@ -51,7 +51,7 @@ func GetAllUsers() ([]models.User, error) {
 	return users, result.Error
 }
 
-func FilterAndSearchUsers(params helper.UserFilterParams) (*[]models.User, int64, error) {
+func FilterAndSearchUsers(params dto.UserFilterParams) (*[]models.User, int64, error) {
 	var users []models.User
 	var total int64
 	offset := (params.Page - 1) * params.Limit

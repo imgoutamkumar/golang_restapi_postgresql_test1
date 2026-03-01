@@ -80,7 +80,6 @@ type ProductVariant struct {
 	Price           float64       `gorm:"type:numeric(10,2);not null"`
 	DiscountPercent float64       `gorm:"type:numeric(5,2);default:0;check:discount_percent >= 0 AND discount_percent <= 100"`
 	IsDefault       bool          `gorm:"default:false"`
-	IsWishlisted    bool          `gorm:"default:false"`
 	Stock           int           `gorm:"not null;default:0;check:stock >= 0"`
 	Status          ProductStatus `gorm:"type:varchar(20);default:'active';index"`
 	Slug            string        `gorm:"type:varchar(120);uniqueIndex"`
