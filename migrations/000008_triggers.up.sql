@@ -19,6 +19,9 @@ UPDATE ON product_images FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 DROP TRIGGER IF EXISTS carts_updated_at ON carts;
 CREATE TRIGGER carts_updated_at BEFORE
 UPDATE ON carts FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- wishlists
+CREATE TRIGGER wishlists_updated_at BEFORE
+UPDATE ON wishlists FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 -- orders
 DROP TRIGGER IF EXISTS orders_updated_at ON orders;
 CREATE TRIGGER orders_updated_at BEFORE

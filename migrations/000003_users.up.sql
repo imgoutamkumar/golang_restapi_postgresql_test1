@@ -4,9 +4,14 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL,
     gender VARCHAR(10) NOT NULL CHECK (gender IN ('male', 'female', 'other')),
+    date_of_birth DATE,
     password VARCHAR(255) NOT NULL,
     role_id UUID NOT NULL,
     avatar_url TEXT,
+    email_verified BOOLEAN DEFAULT false,
+    phone_verified BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    last_login TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at TIMESTAMPTZ,
@@ -57,11 +62,12 @@ CREATE TABLE IF NOT EXISTS password_reset (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX ux_users_username_lower ON users (LOWER(username))
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower ON users (LOWER(username))
 WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX ux_users_email_lower ON users (LOWER(email))
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email_lower ON users (LOWER(email))
 WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_role_id ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 -- 1. Standard lookup index (Used every time a user opens their "My Addresses" page)
 CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id)
 WHERE deleted_at IS NULL;
@@ -71,7 +77,9 @@ WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_single_default_address ON user_addresses(user_id)
 WHERE is_default = true
     AND deleted_at IS NULL;
+    CREATE INDEX IF NOT EXISTS idx_password_reset_user_id 
+ON password_reset(user_id);
 -- Password reset safety
-CREATE UNIQUE INDEX idx_password_reset_user_active ON password_reset(user_id)
-WHERE locked_at IS NULL
-    AND expires_at > now();
+CREATE UNIQUE INDEX IF NOT EXISTS idx_password_reset_user_active 
+ON password_reset(user_id)
+WHERE locked_at IS NULL;

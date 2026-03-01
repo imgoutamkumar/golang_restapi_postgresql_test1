@@ -7,12 +7,12 @@ CREATE TABLE IF NOT EXISTS roles (
 INSERT INTO roles (name)
 VALUES ('user') ON CONFLICT DO NOTHING;
 -- permission table
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) UNIQUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT now()
 );
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
     role_id UUID NOT NULL,
     permission_id UUID NOT NULL,
     PRIMARY KEY (role_id, permission_id),
@@ -33,5 +33,5 @@ CREATE TABLE role_permissions (
 -- WHERE r.name = 'user'
 -- AND p.name IN ('order:read')
 -- ON CONFLICT DO NOTHING;
-CREATE INDEX idx_role_permissions_role_id ON role_permissions(role_id);
-CREATE INDEX idx_role_permissions_permission_id ON role_permissions(permission_id);
+CREATE INDEX IF NOT EXISTS idx_role_permissions_role_id ON role_permissions(role_id);
+CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permissions(permission_id);

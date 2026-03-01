@@ -1,3 +1,6 @@
+
+-- DROP EXTENSION IF EXISTS "pgcrypto";
+
 -- =========================
 -- DROP TRIGGERS
 -- =========================

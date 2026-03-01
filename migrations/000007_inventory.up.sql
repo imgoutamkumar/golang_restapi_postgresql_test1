@@ -32,7 +32,6 @@ CREATE TABLE IF NOT EXISTS inventory_levels (
     -- Ensure we only have one row per variant per warehouse
     UNIQUE (variant_id, warehouse_id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_stock_valid CHECK (available_stock >= reserved_stock),
     CONSTRAINT fk_inventory_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
     CONSTRAINT fk_inventory_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE
 );
@@ -55,10 +54,10 @@ CREATE TABLE IF NOT EXISTS inventory_ledgers (
     CONSTRAINT fk_ledger_warehouse FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE
 );
 -- Index for fast lookups when querying a product's stock
-CREATE INDEX idx_inventory_levels_variant ON inventory_levels(variant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_levels_variant ON inventory_levels(variant_id);
 -- Index for auditing and calculating historical stock
-CREATE INDEX idx_inventory_ledgers_variant ON inventory_ledgers(variant_id);
-CREATE INDEX idx_inventory_ledgers_created_at ON inventory_ledgers(created_at);
-CREATE INDEX idx_inventory_levels_warehouse ON inventory_levels(warehouse_id);
-CREATE INDEX idx_inventory_levels_variant_warehouse ON inventory_levels(variant_id, warehouse_id);
--- Ensure only one primary image per product
+CREATE INDEX IF NOT EXISTS idx_inventory_ledgers_variant ON inventory_ledgers(variant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_ledgers_created_at ON inventory_ledgers(created_at);
+CREATE INDEX IF NOT EXISTS idx_inventory_levels_warehouse ON inventory_levels(warehouse_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_levels_variant_warehouse ON inventory_levels(variant_id, warehouse_id);
+-- Ensure only one primary image per product    

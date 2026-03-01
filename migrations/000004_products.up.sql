@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS product_images (
     CONSTRAINT fk_product_images_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
 );
 
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     product_id UUID NOT NULL,
@@ -140,7 +140,7 @@ CREATE TABLE reviews (
     UNIQUE(user_id, product_id)
 );
 
-CREATE TABLE comments (
+CREATE TABLE IF NOT EXISTS comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     product_id UUID NOT NULL,
@@ -159,27 +159,27 @@ CREATE TABLE comments (
     CONSTRAINT fk_comments_parent FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX ux_products_slug_active ON products(slug)
+CREATE UNIQUE INDEX IF NOT EXISTS ux_products_slug_active ON products(slug)
 WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX ux_default_variant_per_product ON product_variants(product_id)
+CREATE UNIQUE INDEX IF NOT EXISTS ux_default_variant_per_product ON product_variants(product_id)
 WHERE is_default = true;
-CREATE INDEX idx_comments_user_id ON comments(user_id);
-CREATE INDEX idx_comments_product_id ON comments(product_id);
-CREATE INDEX idx_comments_parent_id ON comments(parent_id);
-CREATE INDEX idx_comments_not_deleted ON comments(product_id)
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_product_id ON comments(product_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
+CREATE INDEX IF NOT EXISTS idx_comments_not_deleted ON comments(product_id)
 WHERE deleted_at IS NULL;
-CREATE INDEX idx_banner_active ON banners(is_active);
-CREATE INDEX idx_banner_images_banner_id ON banner_images(banner_id);
+CREATE INDEX IF NOT EXISTS idx_banner_active ON banners(is_active);
+CREATE INDEX IF NOT EXISTS idx_banner_images_banner_id ON banner_images(banner_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_product_primary_image ON product_images (variant_id)
 WHERE is_primary = true;
-CREATE INDEX idx_products_category ON products(category_id);
-CREATE INDEX idx_categories_parent ON categories(parent_id);
-CREATE INDEX idx_products_brand ON products(brand_id);
-CREATE INDEX idx_products_created_by ON products(created_by);
-CREATE INDEX idx_variants_product ON product_variants(product_id);
-CREATE INDEX idx_variant_attributes_variant ON variant_attributes(variant_id);
-CREATE INDEX idx_variant_attributes_value ON variant_attributes(attribute_value_id);
-CREATE INDEX idx_products_status ON products(status);
-CREATE INDEX idx_variants_price ON product_variants(price);
-CREATE INDEX idx_reviews_product_id ON reviews(product_id);
-CREATE INDEX idx_comments_review_id ON comments(review_id);
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
+CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand_id);
+CREATE INDEX IF NOT EXISTS idx_products_created_by ON products(created_by);
+CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);
+CREATE INDEX IF NOT EXISTS idx_variant_attributes_variant ON variant_attributes(variant_id);
+CREATE INDEX IF NOT EXISTS idx_variant_attributes_value ON variant_attributes(attribute_value_id);
+CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
+CREATE INDEX IF NOT EXISTS idx_variants_price ON product_variants(price);
+CREATE INDEX IF NOT EXISTS idx_reviews_product_id ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_comments_review_id ON comments(review_id);

@@ -3,10 +3,34 @@ DO $$ BEGIN IF NOT EXISTS (
     SELECT 1
     FROM pg_type
     WHERE typname = 'order_status'
-) THEN CREATE TYPE order_status AS ENUM ('pending','confirmed','paid','shipped','delivered','cancelled','returned');
+) THEN CREATE TYPE order_status AS ENUM (
+    'pending',
+    'confirmed',
+    'paid',
+    'shipped',
+    'delivered',
+    'cancelled',
+    'returned'
+);
 END IF;
 END $$;
-CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');
+DO $$ BEGIN IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type
+    WHERE typname = 'payment_status'
+) THEN CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');
+END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type WHERE typname = 'shipment_status'
+    ) THEN
+        CREATE TYPE shipment_status AS ENUM (
+            'pending','packed','shipped','out_for_delivery','delivered','failed'
+        );
+    END IF;
+END $$;
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -37,11 +61,10 @@ CREATE TABLE IF NOT EXISTS order_items (
     total_price NUMERIC(10, 2) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    CONSTRAINT fk_order_items_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE
-    SET NULL,
+    CONSTRAINT fk_order_items_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
         CONSTRAINT uq_order_variant UNIQUE (order_id, variant_id)
 );
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL,
     user_id UUID NOT NULL,
@@ -57,7 +80,7 @@ CREATE TABLE payments (
     CONSTRAINT fk_payment_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     CONSTRAINT fk_payment_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE TABLE shipments (
+CREATE TABLE IF NOT EXISTS shipments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL,
     address_id UUID NOT NULL,
@@ -69,8 +92,8 @@ CREATE TABLE shipments (
     city VARCHAR(100),
     state VARCHAR(100),
     postal_code VARCHAR(20),
-    country VARCHAR(100) tracking_number VARCHAR(100),
-    status VARCHAR(20) DEFAULT 'pending',
+    country VARCHAR(100),
+    status shipment_status NOT NULL DEFAULT 'pending',
     -- pending, shipped, out_for_delivery, delivered
     shipped_at TIMESTAMPTZ,
     delivered_at TIMESTAMPTZ,
@@ -86,7 +109,7 @@ CREATE TABLE invoices (
     issued_at TIMESTAMPTZ DEFAULT now(),
     CONSTRAINT fk_invoice_order FOREIGN KEY (order_id) REFERENCES orders(id)
 );
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     title VARCHAR(255),
@@ -95,7 +118,7 @@ CREATE TABLE notifications (
     created_at TIMESTAMPTZ DEFAULT now(),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE TABLE coupons (
+CREATE TABLE IF NOT EXISTS coupons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(50) UNIQUE NOT NULL,
     discount_type VARCHAR(20),
@@ -108,17 +131,19 @@ CREATE TABLE coupons (
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT now()
 );
-
-CREATE TABLE coupon_usages (
-    user_id UUID,
-    coupon_id UUID,
+CREATE TABLE IF NOT EXISTS coupon_usages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    coupon_id UUID NOT NULL,
     used_at TIMESTAMPTZ DEFAULT now(),
-    PRIMARY KEY(user_id, coupon_id)
+    UNIQUE(user_id, coupon_id),
+    CONSTRAINT fk_coupon_usages_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_coupon_usages_coupon FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE
 );
-
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_payments_order_id ON payments(order_id);
-CREATE INDEX idx_payments_user_id ON payments(user_id);
-CREATE INDEX idx_shipments_order_id ON shipments(order_id);
-CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_order_id ON shipments(order_id);
+CREATE INDEX IF NOT EXISTS idx_shipments_address_id ON shipments(address_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
