@@ -130,7 +130,7 @@ func CreateProductService(c *gin.Context, req *dto.CreateProductRequest, userId 
 			return nil, errors.New("invalid primary index")
 		}
 
-		folder := fmt.Sprintf("ecommerce/products/%s", product.ID.String())
+		folder := fmt.Sprintf("fashion/products/%s", product.ID.String())
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 		var uploadErr error
