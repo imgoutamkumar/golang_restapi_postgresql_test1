@@ -378,6 +378,7 @@ func GetAllBrands(c *gin.Context) {
 		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch brands", nil)
 		return
 	}
+	fmt.Println("Fetched brands:", brands)
 	responses := make([]dto.BrandResponse, 0, len(brands))
 	for _, brand := range brands {
 		responses = append(responses, dto.BrandResponse{
@@ -386,7 +387,7 @@ func GetAllBrands(c *gin.Context) {
 		})
 
 	}
-	utils.ResponseSuccess(c, http.StatusOK, "brands fetched successfully", responses)
+	utils.ResponseSuccess(c, http.StatusOK, "brands fetched successfully", brands)
 }
 
 func GetBrandById(c *gin.Context) {
