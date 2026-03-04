@@ -42,6 +42,8 @@ func SetRoutes(r *gin.Engine) {
 			productProtected.DELETE("/:id", handlers.DeleteProduct)
 			productProtected.PATCH("/reorder-images", handlers.ProductImagesReorder)
 			productProtected.POST("/brand/create", handlers.CreateNewBrand)
+			productProtected.GET("/brand/all", handlers.GetAllBrands)
+			productProtected.GET("/brand/:id", handlers.GetBrandById)
 			productProtected.POST("/category/create", handlers.CreateNewCategory)
 			productProtected.POST("/attribute/create", handlers.CreateNewAttribute)
 			productProtected.POST("/attribute/value/create/:attributeId", handlers.CreateNewAttributeValue)

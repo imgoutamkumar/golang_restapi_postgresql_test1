@@ -110,3 +110,13 @@ func GenerateCombinations(input [][]uuid.UUID) [][]uuid.UUID {
 
 	return result
 }
+
+func CalculateGrowth(current, previous float64) float64 {
+	if previous == 0 {
+		if current == 0 {
+			return 0
+		}
+		return 100 // or handle separately
+	}
+	return ((current - previous) / previous) * 100
+}

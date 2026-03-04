@@ -62,10 +62,11 @@ CREATE TABLE IF NOT EXISTS password_reset (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_password_reset_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower ON users (LOWER(username))
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username ON users (username)
 WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email_lower ON users (LOWER(email))
+CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON users (email)
 WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
 CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 -- 1. Standard lookup index (Used every time a user opens their "My Addresses" page)

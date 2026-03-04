@@ -371,3 +371,24 @@ func UpdateCategory(c *gin.Context) {
 func DeleteCategory(c *gin.Context) {
 
 }
+
+func GetAllBrands(c *gin.Context) {
+	brands, err := repository.GetBrands()
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch brands", nil)
+		return
+	}
+	responses := make([]dto.BrandResponse, 0, len(brands))
+	for _, brand := range brands {
+		responses = append(responses, dto.BrandResponse{
+			ID:   brand.ID.String(),
+			Name: brand.Name,
+		})
+
+	}
+	utils.ResponseSuccess(c, http.StatusOK, "brands fetched successfully", responses)
+}
+
+func GetBrandById(c *gin.Context) {
+
+}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -82,8 +83,8 @@ func Register(c *gin.Context) {
 
 	user := models.User{
 		Fullname: req.Fullname,
-		Username: req.Username,
-		Email:    req.Email,
+		Username: strings.ToLower(req.Username),
+		Email:    strings.ToLower(req.Email),
 		Gender:   req.Gender,
 		Password: hashedPassword, // hash password
 		RoleID:   defaultRoleId,

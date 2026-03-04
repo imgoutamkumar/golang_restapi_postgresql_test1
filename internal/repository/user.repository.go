@@ -32,7 +32,7 @@ func GetUserByEmail(email string) (*models.User, error) {
 	err := config.DB.
 		Preload("Role").
 		Where("email = ?", email).
-		First(&user).Error
+		Take(&user).Error
 
 	if err != nil {
 		return nil, err
