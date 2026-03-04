@@ -357,7 +357,12 @@ func CreateNewCategory(c *gin.Context) {
 }
 
 func GetAllCategories(c *gin.Context) {
-
+	categories, err := repository.GetAllCategories()
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch categories", nil)
+		return
+	}
+	utils.ResponseSuccess(c, http.StatusOK, "categories fetched successfully", categories)
 }
 
 func GetCategoryById(c *gin.Context) {
@@ -388,8 +393,4 @@ func GetAllBrands(c *gin.Context) {
 
 	}
 	utils.ResponseSuccess(c, http.StatusOK, "brands fetched successfully", brands)
-}
-
-func GetBrandById(c *gin.Context) {
-
 }

@@ -616,6 +616,12 @@ func CreateCategory(req dto.CreateCategoryRequest) error {
 	return err
 }
 
+func GetAllCategories() ([]models.Category, error) {
+	var categories []models.Category
+	err := config.DB.Find(&categories).Error
+	return categories, err
+}
+
 func GetProductIdsFromVariantIds(variantIds []uuid.UUID) ([]uuid.UUID, error) {
 	var productIds []uuid.UUID
 	err := config.DB.Model(&models.ProductVariant{}).
