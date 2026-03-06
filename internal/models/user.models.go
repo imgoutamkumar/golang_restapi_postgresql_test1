@@ -12,7 +12,7 @@ type User struct {
 	Fullname  string    `gorm:"size:50;not null"`
 	Username  string    `gorm:"size:50;unique;not null"`
 	Gender    string    `gorm:"size:10;not null"`
-	Email     string    `gorm:"size:100;unique;not null"`
+	Email     string    `gorm:"size:100;unique;not null;index"`
 	Password  string    `gorm:"size:255;not null" json:"-"`
 	RoleID    uuid.UUID `gorm:"type:uuid;not null"`
 	Role      Role      `gorm:"foreignKey:RoleID"`
