@@ -45,6 +45,8 @@ func SetRoutes(r *gin.Engine) {
 			productProtected.GET("/brand/all", handlers.GetAllBrands)
 			productProtected.POST("/category/create", handlers.CreateNewCategory)
 			productProtected.GET("/category/all", handlers.GetAllCategories)
+			productProtected.POST("/attribute/all", handlers.GetAllAttributes)
+			productProtected.POST("/attribute-value/:attributeId", handlers.GetAttributeValuesByAttributeId)
 			productProtected.POST("/attribute/create", handlers.CreateNewAttribute)
 			productProtected.POST("/attribute/value/create/:attributeId", handlers.CreateNewAttributeValue)
 		}

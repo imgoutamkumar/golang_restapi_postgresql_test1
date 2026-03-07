@@ -466,6 +466,35 @@ func CreateAttributeValue(req dto.CreateAttributeValueRequest, typeId uuid.UUID)
 	return err
 }
 
+func GetAttributeTypes() ([]models.AttributeType, error) {
+	var types []models.AttributeType
+
+	err := config.DB.
+		Model(&models.AttributeType{}).
+		Find(&types).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return types, nil
+}
+
+func GetAttributeValuesByAttributeID(attributeID uuid.UUID) ([]models.AttributeValue, error) {
+	var values []models.AttributeValue
+
+	err := config.DB.
+		Model(&models.AttributeValue{}).
+		Where("attribute_id = ?", attributeID).
+		Find(&values).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return values, nil
+}
+
 func GetVariantById(productId string, variantId string) (*dto.ProductVariantResponse, error) {
 	var variant models.ProductVariant
 	err := config.DB.Where("product_id = ? AND id = ?", productId, variantId).

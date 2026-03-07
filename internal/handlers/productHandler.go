@@ -307,7 +307,11 @@ func CreateNewAttributeValue(c *gin.Context) {
 }
 
 func GetAllAttributes(c *gin.Context) {
-
+	attributes, err := repository.GetAttributeTypes()
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch attributes list", err.Error())
+	}
+	utils.ResponseSuccess(c, http.StatusOK, "Data fetched successfully", attributes)
 }
 
 func GetAllAttributeValues(c *gin.Context) {
@@ -315,7 +319,17 @@ func GetAllAttributeValues(c *gin.Context) {
 }
 
 func GetAttributeValuesByAttributeId(c *gin.Context) {
-
+	id := c.Param("attributeId") // returns string
+	attributeId, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+	attributeValues, err := repository.GetAttributeValuesByAttributeID(attributeId)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch attributes list", err.Error())
+	}
+	utils.ResponseSuccess(c, http.StatusOK, "Data fetched successfully", attributeValues)
 }
 
 func GetAttributeValueById(c *gin.Context) {

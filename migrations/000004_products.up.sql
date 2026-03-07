@@ -124,7 +124,6 @@ CREATE TABLE IF NOT EXISTS product_images (
     deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_product_images_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
 );
-
 CREATE TABLE IF NOT EXISTS reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -139,7 +138,6 @@ CREATE TABLE IF NOT EXISTS reviews (
     CONSTRAINT fk_reviews_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     UNIQUE(user_id, product_id)
 );
-
 CREATE TABLE IF NOT EXISTS comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
@@ -158,7 +156,6 @@ CREATE TABLE IF NOT EXISTS comments (
     CONSTRAINT fk_comments_review FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE,
     CONSTRAINT fk_comments_parent FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
 );
-
 CREATE UNIQUE INDEX IF NOT EXISTS ux_products_slug_active ON products(slug)
 WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_default_variant_per_product ON product_variants(product_id)
@@ -178,6 +175,7 @@ CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand_id);
 CREATE INDEX IF NOT EXISTS idx_products_created_by ON products(created_by);
 CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);
 CREATE INDEX IF NOT EXISTS idx_variant_attributes_variant ON variant_attributes(variant_id);
+CREATE INDEX IF NOT EXISTS idx_attribute_values_attribute_type_id ON attribute_values(attribute_type_id);
 CREATE INDEX IF NOT EXISTS idx_variant_attributes_value ON variant_attributes(attribute_value_id);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 CREATE INDEX IF NOT EXISTS idx_variants_price ON product_variants(price);
