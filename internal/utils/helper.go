@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"github.com/gosimple/slug"
 
 	"github.com/google/uuid"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/dto"
@@ -119,4 +120,8 @@ func CalculateGrowth(current, previous float64) float64 {
 		return 100 // or handle separately
 	}
 	return ((current - previous) / previous) * 100
+}
+
+func GenerateSlug(name string) string {
+    return slug.Make(name)
 }
