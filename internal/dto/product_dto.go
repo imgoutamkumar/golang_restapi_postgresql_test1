@@ -54,8 +54,9 @@ type AttributeTypeResponse struct {
 	Name string `json:"name"`
 }
 type AttributeValueResponse struct {
-	ID    string `json:"id"`
-	Value string `json:"value"`
+	ID       string `json:"id"`
+	Value    string `json:"value"`
+	MetaInfo string `json:"meta_info"`
 }
 
 type AttributeGroup struct {

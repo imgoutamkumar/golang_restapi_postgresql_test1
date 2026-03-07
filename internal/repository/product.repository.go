@@ -480,11 +480,12 @@ func GetAttributeTypes() ([]models.AttributeType, error) {
 	return types, nil
 }
 
-func GetAttributeValuesByAttributeID(attributeID uuid.UUID) ([]models.AttributeValue, error) {
-	var values []models.AttributeValue
+func GetAttributeValuesByAttributeID(attributeID uuid.UUID) ([]dto.AttributeValueResponse, error) {
+	var values []dto.AttributeValueResponse
 
 	err := config.DB.
 		Model(&models.AttributeValue{}).
+		Select("id, value, meta_info").
 		Where("attribute_type_id = ?", attributeID).
 		Find(&values).Error
 
