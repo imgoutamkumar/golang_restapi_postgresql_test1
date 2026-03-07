@@ -60,12 +60,15 @@ func CreateProductService(c *gin.Context, req *dto.CreateProductRequest, userId 
 	slug := utils.GenerateSlug(req.Name)
 
 	product := models.Product{
-		Name:       req.Name,
-		BrandID:    uuid.MustParse(req.BrandID),
-		CategoryID: uuid.MustParse(req.CategoryID),
-		Status:     models.ProductActive,
-		Slug:       slug,
-		CreatedBy:  userId,
+		Name:             req.Name,
+		BrandID:          uuid.MustParse(req.BrandID),
+		CategoryID:       uuid.MustParse(req.CategoryID),
+		ShortDescription: req.ShortDescription,
+		Description:      req.Description,
+		Status:           models.ProductStatus(req.Status),
+		Currency:         req.Currency,
+		Slug:             slug,
+		CreatedBy:        userId,
 	}
 	if err := tx.Create(&product).Error; err != nil {
 		tx.Rollback()

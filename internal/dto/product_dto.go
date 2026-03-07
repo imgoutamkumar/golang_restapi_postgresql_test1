@@ -8,10 +8,15 @@ import (
 )
 
 type CreateProductRequest struct {
-	Name        string `form:"name" validate:"required,min=3"`
-	BrandID     string `form:"brand_id" validate:"required"`
-	CategoryID  string `form:"category_id" validate:"required"`
-	Description string `form:"description"`
+	Name             string `form:"name" validate:"required,min=3"`
+	BrandID          string `form:"brand_id" validate:"required"`
+	CategoryID       string `form:"category_id" validate:"required"`
+	ShortDescription string `form:"short_description"`
+	Description      string `form:"description"`
+	Currency         string `form:"currency"`
+	Status           string `form:"status" validate:"required,oneof=active inactive draft"`
+	IsReturnable     bool   `form:"is_returnable"`
+	IsCodAvailable   bool   `form:"is_cod_available"`
 	// Variants    []CreateVariantRequest `form:"variants" validate:"required,dive"`
 	VariantsJSON string `form:"variants"`
 }
