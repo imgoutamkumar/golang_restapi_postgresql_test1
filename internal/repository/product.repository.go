@@ -485,7 +485,7 @@ func GetAttributeValuesByAttributeID(attributeID uuid.UUID) ([]models.AttributeV
 
 	err := config.DB.
 		Model(&models.AttributeValue{}).
-		Where("attribute_id = ?", attributeID).
+		Where("attribute_type_id = ?", attributeID).
 		Find(&values).Error
 
 	if err != nil {

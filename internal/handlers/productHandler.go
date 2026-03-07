@@ -328,6 +328,7 @@ func GetAttributeValuesByAttributeId(c *gin.Context) {
 	attributeValues, err := repository.GetAttributeValuesByAttributeID(attributeId)
 	if err != nil {
 		utils.ResponseError(c, http.StatusInternalServerError, "Failed to fetch attributes list", err.Error())
+		return
 	}
 	utils.ResponseSuccess(c, http.StatusOK, "Data fetched successfully", attributeValues)
 }
