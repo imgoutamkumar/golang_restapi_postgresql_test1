@@ -360,7 +360,7 @@ func GetAllProductsForAdmin(
 	var variants []models.ProductVariant
 	err = config.DB.
 		Where("product_id IN (?)", productIDs).
-		Preload("Images", "is_primary = ?", true).
+		Preload("Images").
 		Find(&variants).Error
 	if err != nil {
 		return nil, 0, err
