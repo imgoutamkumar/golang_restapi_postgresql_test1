@@ -277,6 +277,181 @@ func GetAllProducts(
 	return responses, total, nil
 }
 
+func GetAllProductsForAdmin(
+	userID *uuid.UUID,
+	page string,
+	limit string,
+	search string,
+	brand string,
+	minPrice string,
+	maxPrice string,
+	discount string,
+) ([]dto.ProductResponse, int64, error) {
+
+	// var products []dto.ProductResponse
+	var total int64
+
+	// ---------------- BASE QUERY ----------------
+	query := config.DB.Model(&models.Product{}).
+		Joins("LEFT JOIN brands ON brands.id = products.brand_id").
+		Where("products.deleted_at IS NULL")
+
+	// ---------------- SEARCH ----------------
+	if search != "" {
+		search = strings.ToLower(strings.TrimSpace(search))
+		query = query.Where(`
+			LOWER(products.name) ILIKE ? OR 
+			LOWER(products.description) ILIKE ?
+		`, "%"+search+"%", "%"+search+"%")
+	}
+
+	//if fronend send brand_id then no need to add join here
+	if brand != "" {
+		rawBrands := strings.Split(brand, ",")
+		var brands []string
+
+		for _, b := range rawBrands {
+			brands = append(brands, strings.TrimSpace(b))
+		}
+
+		query = query.Where("LOWER(brands.name) IN ?", brands)
+	}
+
+	// ---------------- COUNT ----------------
+	query.Count(&total)
+
+	// ---------------- PAGINATION ----------------
+	p, _ := strconv.Atoi(page)
+	l, _ := strconv.Atoi(limit)
+
+	if p <= 0 {
+		p = 1
+	}
+	if l <= 0 {
+		l = 10
+	}
+
+	offset := (p - 1) * l
+
+	// ---------------- FETCH PRODUCTS ----------------
+	var products []models.Product
+	err := query.
+		Preload("Brand").
+		Order("products.created_at DESC").
+		Limit(l).
+		Offset(offset).
+		Find(&products).Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if len(products) == 0 {
+		return []dto.ProductResponse{}, total, nil
+	}
+
+	// ---------------- COLLECT PRODUCT IDS ----------------
+	productIDs := make([]uuid.UUID, 0)
+	for _, p := range products {
+		productIDs = append(productIDs, p.ID)
+	}
+	fmt.Println("All Product ids", productIDs)
+	// ---------------- FETCH VARIANTS ----------------
+	var variants []models.ProductVariant
+	err = config.DB.
+		Where("product_id IN (?)", productIDs).
+		Preload("Images", "is_primary = ?", true).
+		Find(&variants).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	fmt.Println("Fetched variants:", len(variants))
+	variantMap := make(map[uuid.UUID][]models.ProductVariant)
+
+	for _, v := range variants {
+		variantMap[v.ProductID] = append(variantMap[v.ProductID], v)
+	}
+	fmt.Println("Fetched variantMap:", variantMap)
+
+	// ---------------- FETCH WISHLISTED VARIANT IDS IF USER LOGGED IN ----------------
+	wishlistMap := make(map[uuid.UUID]bool)
+
+	if userID != nil {
+
+		type WishlistProduct struct {
+			ProductID uuid.UUID
+		}
+
+		var wishlistProducts []WishlistProduct
+
+		err = config.DB.
+			Table("wishlist_items wi").
+			Select("DISTINCT pv.product_id").
+			Joins("JOIN product_variants pv ON pv.id = wi.variant_id").
+			Joins("JOIN wishlists w ON w.id = wi.wishlist_id").
+			Where("w.user_id = ?", *userID).
+			Scan(&wishlistProducts).Error
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		for _, item := range wishlistProducts {
+			wishlistMap[item.ProductID] = true
+		}
+	}
+	// ---------------- BUILD RESPONSE ----------------
+	var responses []dto.ProductResponse
+
+	for _, p := range products {
+
+		productResp := dto.ProductResponse{
+			ID:        p.ID.String(),
+			Name:      p.Name,
+			ShortDesc: p.ShortDescription,
+			Currency:  p.Currency,
+			CreatedAt: p.CreatedAt,
+			Brand: dto.BrandResponse{
+				ID:   p.Brand.ID.String(),
+				Name: p.Brand.Name,
+			},
+			IsWishlisted: wishlistMap[p.ID],
+		}
+
+		var variantResponses []dto.ProductVariantResponse
+		// wishlistedVariantIds, err := services.GetWishlistedVariantIds()
+		if err != nil {
+			fmt.Println("Error fetching wishlisted variant IDs:", err)
+		}
+		for _, v := range variants {
+			fmt.Println("Processing variant:", v)
+			var variantImages []dto.ProductImageResponse
+			for _, img := range v.Images {
+				variantImages = append(variantImages, dto.ProductImageResponse{
+					Id:        img.ID.String(),
+					URL:       img.ImageURL,
+					IsPrimary: img.IsPrimary,
+					PublicId:  img.PublicID,
+				})
+			}
+			variantResponses = append(variantResponses,
+				dto.ProductVariantResponse{
+					Sku:             v.Sku,
+					Price:           v.Price,
+					DiscountPercent: v.DiscountPercent,
+					FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
+					Stock:           v.Stock,
+					Images:          variantImages,
+				})
+		}
+
+		productResp.Variants = variantResponses
+		responses = append(responses, productResp)
+	}
+
+	return responses, total, nil
+}
+
 func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 	var product models.Product
 	db := config.DB

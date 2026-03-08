@@ -49,6 +49,31 @@ func GetAllProducts(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": products, "message": "Data Fetched successfully", "status": true, "total": total})
 }
 
+func GetAllProductsForAdmin(c *gin.Context) {
+	page := c.DefaultQuery("page", "1")
+	limit := c.DefaultQuery("limit", "12")
+	search := c.Query("searchTerm")
+	brand := c.Query("brand") // Nike,Puma
+	minPrice := c.Query("minPrice")
+	maxPrice := c.Query("maxPrice")
+	discount := c.Query("discount")
+	userIdStr, _ := c.Get("userId")
+	var userId *uuid.UUID
+	if userIdStr != nil {
+		parsedUserId, err := uuid.Parse(userIdStr.(string))
+		if err == nil {
+			userId = &parsedUserId
+		}
+	}
+	products, total, err := repository.GetAllProductsForAdmin(userId, page, limit, search, brand, minPrice, maxPrice, discount)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Something went wrong", nil)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": products, "message": "Data Fetched successfully", "status": true, "total": total})
+}
+
 func GetProductById(c *gin.Context) {
 	id := c.Param("id")
 	productID, err := uuid.Parse(id)

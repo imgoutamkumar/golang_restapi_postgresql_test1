@@ -28,7 +28,7 @@ type CreateVariantRequest struct {
 	DiscountPercent   float64  `form:"discount_percent" validate:"gte=0,lte=100"`
 	IsDefault         bool     `form:"is_default"`
 	Status            string   `form:"status" validate:"required,oneof=active inactive"`
-	AttributeValueIDs []string `json:"attribute_value_ids" validate:"required"`
+	AttributeValueIDs []string `form:"attribute_value_ids" validate:"required"`
 
 	// images for this variant
 	ImageFiles   []*multipart.FileHeader `form:"images" validate:"required"`

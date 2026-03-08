@@ -32,10 +32,12 @@ func SetRoutes(r *gin.Engine) {
 	product := r.Group("/products")
 	{
 		product.GET("/all", handlers.GetAllProducts)
+
 		product.GET("/filters", handlers.GetFilters)
 		productProtected := product.Group("/")
 		productProtected.Use(middleware.AuthMiddleware())
 		{
+			product.GET("/allProducts", handlers.GetAllProductsForAdmin)
 			productProtected.GET("/:id", handlers.GetProductById)
 			productProtected.POST("/create", handlers.CreateNewProduct)
 			productProtected.PUT("/:id", handlers.UpdateProduct)
