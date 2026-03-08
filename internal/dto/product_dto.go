@@ -73,8 +73,10 @@ type ProductVariantResponse struct {
 	Sku             string                 `json:"sku"`
 	Price           float64                `json:"price"`
 	DiscountPercent float64                `json:"discount_percent"`
+	OriginalPrice   float64                `json:"original_price"`
 	FinalPrice      float64                `json:"final_price"`
 	Stock           int                    `json:"stock"`
+	Status          string                 `jdon:"status"`
 	AttributeGroup  []AttributeGroup       `json:"attribute_groups"`
 	Images          []ProductImageResponse `json:"images"`
 }

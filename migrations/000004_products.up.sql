@@ -104,7 +104,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
     stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
     status VARCHAR(20) DEFAULT 'active',
     slug VARCHAR(120) UNIQUE,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS variant_attributes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

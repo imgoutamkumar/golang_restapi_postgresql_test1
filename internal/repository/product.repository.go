@@ -439,9 +439,11 @@ func GetAllProductsForAdmin(
 					Sku:             v.Sku,
 					Price:           v.Price,
 					DiscountPercent: v.DiscountPercent,
+					OriginalPrice:   v.Price,
 					FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
 					Stock:           v.Stock,
 					Images:          variantImages,
+					Status:          string(v.Status),
 				})
 		}
 
