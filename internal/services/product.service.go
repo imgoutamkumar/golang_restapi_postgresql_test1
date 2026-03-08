@@ -88,7 +88,7 @@ func CreateProductService(c *gin.Context, req *dto.CreateProductRequest, userId 
 		return nil, formErr
 	}
 	for i, v := range variants {
-
+		variantSlug := utils.GenerateSlug(v.Sku)
 		variant := models.ProductVariant{
 			ProductID:       product.ID,
 			Sku:             v.Sku,
@@ -97,6 +97,7 @@ func CreateProductService(c *gin.Context, req *dto.CreateProductRequest, userId 
 			DiscountPercent: v.DiscountPercent,
 			IsDefault:       v.IsDefault,
 			Status:          models.ProductStatus(v.Status),
+			Slug:            variantSlug,
 		}
 		fmt.Println("AttributeValueIDs:", v.AttributeValueIDs)
 		if err := tx.Create(&variant).Error; err != nil {
