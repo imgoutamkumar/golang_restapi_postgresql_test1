@@ -507,6 +507,7 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 			val := dto.AttributeValueResponse{
 				ID:        va.AttributeValue.ID.String(),
 				Value:     va.AttributeValue.Value,
+				MetaInfo:  va.AttributeValue.MetaInfo,
 				VariantId: v.ID.String(),
 			}
 			attrGroupMap[attrGroupName] = append(attrGroupMap[attrGroupName], val)
