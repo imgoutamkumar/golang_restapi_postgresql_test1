@@ -226,7 +226,8 @@ func GetProductWithCache(productID uuid.UUID) (*dto.ProductResponse, error) {
 			ID:   product.Brand.ID,
 			Name: product.Brand.Name,
 		},
-		Variants: product.Variants,
+		Variants:     product.Variants,
+		AttrGroupMap: product.AttrGroupMap,
 	}
 
 	// here use goroutine to set cache asynchronouslys
