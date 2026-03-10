@@ -261,7 +261,7 @@ func GetAllProducts(
 			}
 			variantResponses = append(variantResponses,
 				dto.ProductVariantResponse{
-					Id:    v.ID
+					Id:              v.ID.String(),
 					Sku:             v.Sku,
 					Price:           v.Price,
 					DiscountPercent: v.DiscountPercent,
