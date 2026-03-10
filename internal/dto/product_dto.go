@@ -59,9 +59,10 @@ type AttributeTypeResponse struct {
 	Name string `json:"name"`
 }
 type AttributeValueResponse struct {
-	ID       string `json:"id"`
-	Value    string `json:"value"`
-	MetaInfo string `json:"meta_info"`
+	ID        string `json:"id"`
+	Value     string `json:"value"`
+	MetaInfo  string `json:"meta_info"`
+	VariantId string `json:"variantId"`
 }
 
 type AttributeGroup struct {
@@ -83,16 +84,17 @@ type ProductVariantResponse struct {
 }
 
 type ProductResponse struct {
-	ID           string                   `json:"id"`
-	Name         string                   `json:"name"`
-	ShortDesc    string                   `json:"short_description"`
-	BasePrice    float64                  `json:"base_price"`
-	Currency     string                   `json:"currency"`
-	Brand        BrandResponse            `json:"brand"`
-	CreatedBy    string                   `json:"created_by"`
-	Variants     []ProductVariantResponse `json:"variants"`
-	CreatedAt    time.Time                `json:"created_at"`
-	IsWishlisted bool                     `json:"is_wishlisted"`
+	ID           string                              `json:"id"`
+	Name         string                              `json:"name"`
+	ShortDesc    string                              `json:"short_description"`
+	BasePrice    float64                             `json:"base_price"`
+	Currency     string                              `json:"currency"`
+	Brand        BrandResponse                       `json:"brand"`
+	CreatedBy    string                              `json:"created_by"`
+	Variants     []ProductVariantResponse            `json:"variants"`
+	CreatedAt    time.Time                           `json:"created_at"`
+	IsWishlisted bool                                `json:"is_wishlisted"`
+	AttrGroupMap map[string][]AttributeValueResponse `json:"attributes"`
 }
 type FiltersResponse struct {
 	Brands []BrandResponse `json:"brands"`
