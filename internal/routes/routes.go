@@ -62,6 +62,8 @@ func SetRoutes(r *gin.Engine) {
 	{
 		cartUserProtected.GET("/items", handlers.GetAllCartItems)
 		cartUserProtected.POST("/item", handlers.AddOrUpdateCartItem)
+		cartUserProtected.POST("/checkout", handlers.Checkout)
+		cartUserProtected.POST("/verify-payment", handlers.VerifyPayment)
 	}
 
 	// Admin routes (admin authorized routes)

@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"net/http"
-
+	// razorpay "github.com/razorpay/razorpay-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/config"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/models"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/repository"
 	"github.com/goutamkumar/golang_restapi_postgresql_test1/internal/utils"
@@ -39,7 +40,7 @@ func Checkout(c *gin.Context) {
 
 	for _, item := range cart.CartItems {
 
-		productVariant, err := repository.GetVariantByVariantId(item.VariantID.String())
+		productVariant, err := repository.GetVariantByVariantId(item.VariantID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Product does not exist": err})
 			return
@@ -63,21 +64,96 @@ func Checkout(c *gin.Context) {
 		total += productVariant.Price * float64(item.Quantity)
 
 	}
-	// 3. Create Order
+	// Razorpay amount must be in paise
+	amount := int(total * 100)
+
+	data := map[string]interface{}{
+		"amount":   amount,
+		"currency": "INR",
+		"receipt":  GenerateOrderNumber(),
+	}
+
+	body, err := config.RazorpayClient.Order.Create(data, nil)
+	if err != nil {
+		utils.ResponseError(c, http.StatusInternalServerError, "Failed to create Razorpay order", nil)
+		return
+	}
+
+	utils.ResponseSuccess(c, http.StatusOK, "Razorpay order created", body)
+}
+
+func VerifyPayment(c *gin.Context) {
+
+	var req struct {
+		RazorpayOrderID   string `json:"razorpay_order_id"`
+		RazorpayPaymentID string `json:"razorpay_payment_id"`
+		RazorpaySignature string `json:"razorpay_signature"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	body := req.RazorpayOrderID + "|" + req.RazorpayPaymentID
+
+	if !utils.VerifySignature(body, req.RazorpaySignature) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid signature"})
+		return
+	}
+
+	val, _ := c.Get("userId")
+	userId, _ := uuid.Parse(val.(string))
+
+	cart, err := repository.GetCartByUserId(userId)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Cart not found", nil)
+		return
+	}
+
+	var total float64
+	var orderItems []models.OrderItem
+
+	for _, item := range cart.CartItems {
+
+		variant, _ := repository.GetVariantByVariantId(item.VariantID)
+
+		orderItems = append(orderItems, models.OrderItem{
+			VariantID:    item.VariantID,
+			Quantity:     item.Quantity,
+			ProductPrice: variant.Price,
+		})
+
+		total += variant.Price * float64(item.Quantity)
+
+		variant.Stock -= item.Quantity
+		repository.UpdateVariant(variant)
+	}
+
 	order := models.Order{
 		UserID:      userId,
 		OrderNumber: GenerateOrderNumber(),
+		Status:      models.OrderPaid,
 		Subtotal:    total,
-		Status:      models.OrderPending,
-		OrderItems:  finalOrderItems,
 		TotalAmount: total,
+		OrderItems:  orderItems,
 	}
-	createdOrder, err := repository.CreateOrder(&order)
-	if err != nil {
-		utils.ResponseError(c, http.StatusBadRequest, "Order Failed", nil)
-		return
+
+	repository.CreateOrder(&order)
+
+	repository.ClearCart(userId)
+
+	payment := models.Payment{
+		UserID:            userId,
+		RazorpayOrderID:   req.RazorpayOrderID,
+		RazorpayPaymentID: req.RazorpayPaymentID,
+		Amount:            total,
+		Status:            "success",
 	}
-	utils.ResponseSuccess(c, http.StatusBadRequest, "Order Placed", createdOrder)
+
+	config.DB.Create(&payment)
+
+	utils.ResponseSuccess(c, http.StatusOK, "Payment successful", order)
 }
 
 func CreateOrder(order *models.Order) {

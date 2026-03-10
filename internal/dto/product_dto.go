@@ -70,6 +70,7 @@ type AttributeGroup struct {
 }
 
 type ProductVariantResponse struct {
+	Id              string                 `json:"id"`
 	Sku             string                 `json:"sku"`
 	Price           float64                `json:"price"`
 	DiscountPercent float64                `json:"discount_percent"`

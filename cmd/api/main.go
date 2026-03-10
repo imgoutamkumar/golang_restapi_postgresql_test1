@@ -35,7 +35,7 @@ func main() {
 	// Connect to Redis, clodinary
 	config.ConnectRedis()
 	config.InitializeCloudinary()
-
+	// config.InitRazorpay()
 	var router *gin.Engine = gin.Default()
 	//router := gin.Default()
 

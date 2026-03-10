@@ -56,3 +56,12 @@ type OrderItem struct {
 	// Unique constraint
 	// uq_order_product (order_id, product_id)
 }
+
+type Payment struct {
+	ID                uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	UserID            uuid.UUID
+	RazorpayOrderID   string
+	RazorpayPaymentID string
+	Amount            float64
+	Status            string
+}

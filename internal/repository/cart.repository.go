@@ -67,3 +67,7 @@ func RemoveCartItemFrom(cartId uuid.UUID, variantId uuid.UUID) error {
 		Delete(&models.CartItems{}).
 		Error
 }
+
+func ClearCart(userId uuid.UUID) {
+
+}

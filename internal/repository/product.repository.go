@@ -261,6 +261,7 @@ func GetAllProducts(
 			}
 			variantResponses = append(variantResponses,
 				dto.ProductVariantResponse{
+					Id:    v.ID
 					Sku:             v.Sku,
 					Price:           v.Price,
 					DiscountPercent: v.DiscountPercent,
@@ -719,7 +720,7 @@ func GetVariantById(productId string, variantId string) (*dto.ProductVariantResp
 	return &productvariant, nil
 }
 
-func GetVariantByVariantId(variantId string) (*dto.ProductVariantResponse, error) {
+func GetVariantByVariantId(variantId uuid.UUID) (*models.ProductVariant, error) {
 	var variant models.ProductVariant
 	err := config.DB.Where("id = ?", variantId).
 		Preload("Images").
@@ -762,7 +763,7 @@ func GetVariantByVariantId(variantId string) (*dto.ProductVariantResponse, error
 
 	productvariant.Images = variantImages
 	productvariant.AttributeGroup = attributeGroups
-	return &productvariant, nil
+	return &variant, nil
 }
 
 func GetNewArrivals() ([]dto.ProductResponse, error) {
@@ -838,4 +839,8 @@ func GetProductIdsFromVariantIds(variantIds []uuid.UUID) ([]uuid.UUID, error) {
 		return nil, err
 	}
 	return productIds, nil
+}
+
+func UpdateVariant(variant *models.ProductVariant) {
+
 }
