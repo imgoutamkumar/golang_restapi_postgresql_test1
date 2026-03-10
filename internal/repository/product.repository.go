@@ -518,11 +518,14 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 		}
 
 		response.Variants = append(response.Variants, dto.ProductVariantResponse{
-			Sku:            v.Sku,
-			Price:          v.Price,
-			Stock:          v.Stock,
-			Images:         variantImages,
-			AttributeGroup: attributeGroups,
+			Id:              v.ID.String(),
+			Sku:             v.Sku,
+			Price:           v.Price,
+			DiscountPercent: v.DiscountPercent,
+			OriginalPrice:   v.Price,
+			Stock:           v.Stock,
+			Images:          variantImages,
+			AttributeGroup:  attributeGroups,
 		})
 
 	}
