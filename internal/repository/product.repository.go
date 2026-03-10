@@ -437,6 +437,7 @@ func GetAllProductsForAdmin(
 			}
 			variantResponses = append(variantResponses,
 				dto.ProductVariantResponse{
+					Id:              v.ID.String(),
 					Sku:             v.Sku,
 					Price:           v.Price,
 					DiscountPercent: v.DiscountPercent,
