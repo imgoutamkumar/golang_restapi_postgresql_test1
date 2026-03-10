@@ -92,7 +92,7 @@ func GetProductById(c *gin.Context) {
 
 	// response := utils.MapProductToResponse(product)
 
-	c.JSON(201, gin.H{
+	c.JSON(200, gin.H{
 		"status":  "success",
 		"message": "Product fetched successfully",
 		"data":    product,

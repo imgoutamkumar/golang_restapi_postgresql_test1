@@ -460,7 +460,7 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 	var product models.Product
 	db := config.DB
 
-	// 1️⃣ Fetch Product + Brand (ONLY)
+	// Fetch Product + Brand (ONLY)
 	if err := db.
 		Preload("Brand").
 		First(&product, "id = ?", id).Error; err != nil {
@@ -501,19 +501,16 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 		}
 		fmt.Println("variants Attributes", v.VariantAttributes)
 		// build attribute groups
-        attrGroupMap := make(map[string][]dto.AttributeValueResponse)
+		attrGroupMap := make(map[string][]dto.AttributeValueResponse)
 		for _, va := range v.VariantAttributes {
 			attrGroupName := va.AttributeValue.AttributeType.Name
-			attrGroupMap[attrGroupName] = append(attrGroupMap[attrGroupName], dto.AttributeValueResponse{
+			val := dto.AttributeValueResponse{
 				ID:        va.AttributeValue.ID.String(),
 				Value:     va.AttributeValue.Value,
 				VariantId: v.ID.String(),
-			})
-			allAttrGroupMap[attrGroupName] = append(allAttrGroupMap[attrGroupName], dto.AttributeValueResponse{
-				ID:        va.AttributeValue.ID.String(),
-				Value:     va.AttributeValue.Value,
-				VariantId: v.ID.String(),
-			})
+			}
+			attrGroupMap[attrGroupName] = append(attrGroupMap[attrGroupName], val)
+			allAttrGroupMap[attrGroupName] = append(allAttrGroupMap[attrGroupName], val)
 		}
 		var attributeGroups []dto.AttributeGroup
 		for name, values := range attrGroupMap {
