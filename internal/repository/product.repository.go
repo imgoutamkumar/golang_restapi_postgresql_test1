@@ -237,25 +237,12 @@ func GetAllProducts(
 
 	for _, p := range products {
 
-		productResp := dto.ProductResponse{
-			ID:        p.ID.String(),
-			Name:      p.Name,
-			ShortDesc: p.ShortDescription,
-			Currency:  p.Currency,
-			CreatedAt: p.CreatedAt,
-			Brand: dto.BrandResponse{
-				ID:   p.Brand.ID.String(),
-				Name: p.Brand.Name,
-			},
-			IsWishlisted: wishlistMap[p.ID],
-		}
-
 		var variantResponses []dto.ProductVariantResponse
-		// wishlistedVariantIds, err := services.GetWishlistedVariantIds()
-		if err != nil {
-			fmt.Println("Error fetching wishlisted variant IDs:", err)
-		}
+
 		for _, v := range variants {
+			if v.ProductID != p.ID {
+				continue
+			}
 			fmt.Println("Processing variant:", v)
 			var variantImages []dto.ProductImageResponse
 			for _, img := range v.Images {
@@ -279,8 +266,20 @@ func GetAllProducts(
 			variantMap[v.ProductID] = append(variantMap[v.ProductID], vResponse)
 		}
 
+		productResp := dto.ProductResponse{
+			ID:        p.ID.String(),
+			Name:      p.Name,
+			ShortDesc: p.ShortDescription,
+			Currency:  p.Currency,
+			CreatedAt: p.CreatedAt,
+			Brand: dto.BrandResponse{
+				ID:   p.Brand.ID.String(),
+				Name: p.Brand.Name,
+			},
+			IsWishlisted: wishlistMap[p.ID],
+			Variants:     variantMap[p.ID],
+		}
 		// productResp.Variants = variantResponses
-		productResp.Variants = variantMap[p.ID]
 		responses = append(responses, productResp)
 	}
 
