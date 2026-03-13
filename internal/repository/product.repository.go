@@ -191,11 +191,18 @@ func GetAllProducts(
 		return nil, 0, err
 	}
 	fmt.Println("Fetched variants:", len(variants))
-	variantMap := make(map[uuid.UUID][]models.ProductVariant)
+	variantMap := make(map[uuid.UUID][]dto.ProductVariantResponse)
 
-	for _, v := range variants {
-		variantMap[v.ProductID] = append(variantMap[v.ProductID], v)
-	}
+	// for _, v := range variants {
+	// 	variantMap[v.ProductID] = append(variantMap[v.ProductID], dto.ProductVariantResponse{
+	// 		Id:              v.ID.String(),
+	// 		Sku:             v.Sku,
+	// 		Price:           v.Price,
+	// 		DiscountPercent: v.DiscountPercent,
+	// 		FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
+	// 		Stock:           v.Stock,
+	// 	})
+	// }
 	fmt.Println("Fetched variantMap:", variantMap)
 
 	// ---------------- FETCH WISHLISTED VARIANT IDS IF USER LOGGED IN ----------------
@@ -259,19 +266,21 @@ func GetAllProducts(
 					PublicId:  img.PublicID,
 				})
 			}
-			variantResponses = append(variantResponses,
-				dto.ProductVariantResponse{
-					Id:              v.ID.String(),
-					Sku:             v.Sku,
-					Price:           v.Price,
-					DiscountPercent: v.DiscountPercent,
-					FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
-					Stock:           v.Stock,
-					Images:          variantImages,
-				})
+			vResponse := dto.ProductVariantResponse{
+				Id:              v.ID.String(),
+				Sku:             v.Sku,
+				Price:           v.Price,
+				DiscountPercent: v.DiscountPercent,
+				FinalPrice:      v.Price - (v.Price * v.DiscountPercent / 100),
+				Stock:           v.Stock,
+				Images:          variantImages,
+			}
+			variantResponses = append(variantResponses, vResponse)
+			variantMap[v.ProductID] = append(variantMap[v.ProductID], vResponse)
 		}
 
-		productResp.Variants = variantResponses
+		// productResp.Variants = variantResponses
+		productResp.Variants = variantMap[p.ID]
 		responses = append(responses, productResp)
 	}
 
@@ -515,11 +524,11 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 			attrGroupMap[attrGroupName] = append(attrGroupMap[attrGroupName], val)
 			allAttrGroupMap[attrGroupName] = append(allAttrGroupMap[attrGroupName], val)
 			// create map and append
-			
+
 			attrObj[attrGroupName] = val
-			
+
 		}
-        allAttribute = append(allAttribute, attrObj)
+		allAttribute = append(allAttribute, attrObj)
 		var attributeGroups []dto.AttributeGroup
 		for name, values := range attrGroupMap {
 			attributeGroups = append(attributeGroups, dto.AttributeGroup{

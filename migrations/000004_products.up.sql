@@ -111,6 +111,9 @@ CREATE TABLE IF NOT EXISTS variant_attributes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     variant_id UUID REFERENCES product_variants(id) ON DELETE CASCADE,
     attribute_value_id UUID REFERENCES attribute_values(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ,
     UNIQUE(variant_id, attribute_value_id)
 );
 CREATE TABLE IF NOT EXISTS product_images (
