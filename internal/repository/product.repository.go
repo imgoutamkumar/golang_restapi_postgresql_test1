@@ -503,6 +503,7 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 		fmt.Println("variants Attributes", v.VariantAttributes)
 		// build attribute groups
 		attrGroupMap := make(map[string][]dto.AttributeValueResponse)
+		attrObj := make(map[string]dto.AttributeValueResponse)
 		for _, va := range v.VariantAttributes {
 			attrGroupName := va.AttributeValue.AttributeType.Name
 			val := dto.AttributeValueResponse{
@@ -514,12 +515,11 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 			attrGroupMap[attrGroupName] = append(attrGroupMap[attrGroupName], val)
 			allAttrGroupMap[attrGroupName] = append(allAttrGroupMap[attrGroupName], val)
 			// create map and append
-			attrObj := make(map[string]dto.AttributeValueResponse)
+			
 			attrObj[attrGroupName] = val
-
-			allAttribute = append(allAttribute, attrObj)
+			
 		}
-
+        allAttribute = append(allAttribute, attrObj)
 		var attributeGroups []dto.AttributeGroup
 		for name, values := range attrGroupMap {
 			attributeGroups = append(attributeGroups, dto.AttributeGroup{
