@@ -95,6 +95,7 @@ type ProductResponse struct {
 	CreatedAt    time.Time                           `json:"created_at"`
 	IsWishlisted bool                                `json:"is_wishlisted"`
 	AttrGroupMap map[string][]AttributeValueResponse `json:"attributes"`
+	AllAttribute []map[string]AttributeValueResponse `json:"allAttributes"`
 }
 type FiltersResponse struct {
 	Brands []BrandResponse `json:"brands"`

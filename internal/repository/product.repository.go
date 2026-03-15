@@ -550,7 +550,7 @@ func GetProductByUUID(id uuid.UUID) (*dto.ProductResponse, error) {
 	}
 	fmt.Println("allAttrGroupMap", allAttrGroupMap)
 	response.AttrGroupMap = allAttrGroupMap
-
+	response.AllAttribute = allAttribute
 	fmt.Println("allAttribute", allAttribute)
 	fmt.Println("response", response)
 	return &response, nil
