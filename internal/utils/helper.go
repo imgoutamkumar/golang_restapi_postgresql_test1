@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
 	"github.com/gosimple/slug"
 
 	"github.com/google/uuid"
@@ -13,11 +14,14 @@ import (
 )
 
 type UserResponse struct {
-	ID       uuid.UUID `json:"id"`
-	Username string    `json:"username"`
-	Email    string    `json:"email"`
-	Role     string    `json:"role"`
-	Avatar   string    `json:"avatar,omitempty"` // optional
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	Avatar    string    `json:"avatar,omitempty"`     // optional
+	FullName  string    `json:"full_name,omitempty"`  // optional
+	Gender    string    `json:"gender,omitempty"`     // optional
+	CreatedAt time.Time `json:"created_at,omitempty"` // optional
 }
 
 func ToUserResponse(user *models.User) UserResponse {
@@ -27,6 +31,9 @@ func ToUserResponse(user *models.User) UserResponse {
 		Email:    user.Email,
 		Role:     user.Role.Name,
 		//Avatar:   user.AvatarURL,
+		FullName:  user.Fullname,
+		Gender:    user.Gender,
+		CreatedAt: user.CreatedAt,
 	}
 }
 
@@ -123,5 +130,5 @@ func CalculateGrowth(current, previous float64) float64 {
 }
 
 func GenerateSlug(name string) string {
-    return slug.Make(name)
+	return slug.Make(name)
 }
