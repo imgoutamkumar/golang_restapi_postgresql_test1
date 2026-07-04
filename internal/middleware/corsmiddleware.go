@@ -9,7 +9,7 @@ func CORSMiddleware() gin.HandlerFunc {
 		"https://your-frontend.com":                                             true, // prod
 		"https://www.your-frontend.com":                                         true,
 		"https://fashion-gules-pi.vercel.app":                                   true,
-		"https://myshop-frontend-ecqs2yqgt-imgoutamkumars-projects.vercel.app/": true,
+		"https://myshop-frontend-ecqs2yqgt-imgoutamkumars-projects.vercel.app": true,
 	}
 
 	return func(c *gin.Context) {
