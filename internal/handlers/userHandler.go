@@ -180,6 +180,45 @@ func GetUser(c *gin.Context) {
 	utils.ResponseSuccess(c, http.StatusOK, "data fetched successfully", userResponse)
 }
 
+func GetUserProfile(c *gin.Context) {
+	// 1. Extract the userId from the context (populated by your Auth Middleware)
+	val, ok := c.Get("userId")
+	if !ok {
+		utils.ResponseError(c, http.StatusUnauthorized, "Unauthorized: No user session found", nil)
+		return
+	}
+
+	// 2. Safely type assert the interface{} value to a string
+	userIdStr, ok := val.(string)
+	if !ok {
+		utils.ResponseError(c, http.StatusInternalServerError, "Internal Server Error: Invalid identity format", nil)
+		return
+	}
+
+	// 3. Parse the string into a clean UUID type
+	userID, err := uuid.Parse(userIdStr)
+	if err != nil {
+		utils.ResponseError(c, http.StatusBadRequest, "Bad Request: Malformed identity token", nil)
+		return
+	}
+
+	// 4. Fetch the user profile data securely
+	user, err := repository.GetUserByUUID(userID)
+	if err != nil {
+		// Cleaned up err to err.Error() to prevent passing raw golang struct errors directly to JSON
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   err.Error(),
+			"status":  "Failure",
+			"message": "We couldn't find your profile documentation",
+		})
+		return
+	}
+
+	// 5. Transform and return success response
+	userResponse := utils.ToUserResponse(user)
+	utils.ResponseSuccess(c, http.StatusOK, "data fetched successfully", userResponse)
+}
+
 func GetUserByEmail(c *gin.Context) {
 	email := c.Query("email")
 	user, err := repository.GetUserByEmail(email)

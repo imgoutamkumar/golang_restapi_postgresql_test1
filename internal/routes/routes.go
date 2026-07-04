@@ -16,6 +16,7 @@ func SetRoutes(r *gin.Engine) {
 		user.POST("/login", handlers.Login)
 		user.GET("/all", middleware.AuthMiddleware(), handlers.GetAllUsers)
 		// user.GET("/:id", middleware.AuthMiddleware(), handlers.GetUser)
+		user.GET("/userprofile", middleware.AuthMiddleware(), handlers.GetUserProfile)
 		user.GET("/user", middleware.AuthMiddleware(), handlers.GetUserByEmail)
 		user.POST("/password/forgot", handlers.SendOtpRequest)
 		user.POST("/password/verify", handlers.VerifyOtpRequest)
