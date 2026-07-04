@@ -5,11 +5,12 @@ import "github.com/gin-gonic/gin"
 func CORSMiddleware() gin.HandlerFunc {
 
 	allowedOrigins := map[string]bool{
-		"http://localhost:5173":                                                 true, // dev
-		"https://your-frontend.com":                                             true, // prod
-		"https://www.your-frontend.com":                                         true,
-		"https://fashion-gules-pi.vercel.app":                                   true,
+		"http://localhost:5173":                                                true, // dev
+		"https://your-frontend.com":                                            true, // prod
+		"https://www.your-frontend.com":                                        true,
+		"https://fashion-gules-pi.vercel.app":                                  true,
 		"https://myshop-frontend-ecqs2yqgt-imgoutamkumars-projects.vercel.app": true,
+		"https://myshop-frontend-kappa.vercel.app":                             true,
 	}
 
 	return func(c *gin.Context) {
